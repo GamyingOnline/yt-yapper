@@ -1,3 +1,4 @@
+pub mod login;
 pub mod music;
 pub mod ping;
 pub mod skip;

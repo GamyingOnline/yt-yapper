@@ -1,1 +1,5 @@
 /target
+
+# yt-dlp config files
+cookies.txt
+yt-dlp.conf
