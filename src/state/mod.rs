@@ -1,11 +1,14 @@
-use reqwest::Client as HttpClient;
-use sqlx::{SqliteConnection, SqlitePool};
+use std::sync::mpsc::Receiver;
 
-use crate::scrobbler::Scrobbler;
+use reqwest::Client as HttpClient;
+use sqlx::SqlitePool;
+
+use crate::{persistence::entities::user::User, scrobbler::Scrobbler};
 
 #[derive(Debug)]
 pub struct Data {
     pub hc: HttpClient,
     pub sqlite_conn: SqlitePool,
     pub scrobbler: Scrobbler,
+    pub rx: Receiver<User>,
 }

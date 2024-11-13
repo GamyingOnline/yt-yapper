@@ -1,3 +1,6 @@
+use poise::CreateReply;
+use serenity::all::CreateEmbed;
+
 use crate::commands::utils::Error;
 
 use super::utils::Context;
@@ -15,7 +18,11 @@ pub async fn skip(ctx: Context<'_>) -> Result<(), Error> {
     };
 
     if let None = channel_id {
-        ctx.say("Not in a voice chat.").await?;
+        ctx.send(CreateReply {
+            embeds: vec![CreateEmbed::new().description("❌ Not in a voice channel.")],
+            ..Default::default()
+        })
+        .await?;
         return Ok(());
     }
 
@@ -28,11 +35,19 @@ pub async fn skip(ctx: Context<'_>) -> Result<(), Error> {
         let handler = handler_lock.lock().await;
         let queue = handler.queue();
         if queue.len() == 0 {
-             ctx.say(format!("❌ Nothing to skip")).await?;
-             return Ok(());
+            ctx.send(CreateReply {
+                embeds: vec![CreateEmbed::new().description("❌ Nothing to skip")],
+                ..Default::default()
+            })
+            .await?;
+            return Ok(());
         }
         queue.skip()?;
     }
-    ctx.say(format!("⏩ Skipped")).await?;
+    ctx.send(CreateReply {
+        embeds: vec![CreateEmbed::new().description("⏩ Skipped")],
+        ..Default::default()
+    })
+    .await?;
     Ok(())
 }

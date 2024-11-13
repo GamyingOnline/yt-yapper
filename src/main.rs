@@ -1,3 +1,4 @@
+#![feature(duration_constructors)]
 use std::error::Error;
 
 use commands::ping::ping;
@@ -15,6 +16,7 @@ mod commands;
 mod events;
 mod persistence;
 mod scrobbler;
+mod server;
 mod state;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -42,8 +44,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     scrobbler: Scrobbler {
                         http_client: HttpClient::new(),
                         sqlite_conn: pool.clone(),
-                        api_key: env!("LASTFM_API_KEY").to_string(),
-                        token: env!("LASTFM_TOKEN").to_string(),
+                        api_key: std::env::var("LASTFM_API_KEY").expect("missing LASTFM_API_KEY"),
+                        token: std::env::var("LASTFM_TOKEN").expect("missing LASTFM_TOKEN"),
                     },
                 })
             })

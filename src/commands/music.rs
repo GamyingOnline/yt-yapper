@@ -1,3 +1,5 @@
+use poise::CreateReply;
+use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 use songbird::{
     input::{Compose, YoutubeDl},
     TrackEvent,
@@ -39,36 +41,48 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
         handler.enqueue_input(src.clone().into()).await;
         match handler.queue().len() {
             1 => {
-                ctx.say(format!(
-                    "⏯️ **Now Playing**\n\n**Title** - _{}_\n**Artist** - {}\n**Channel** - {}\n",
-                    track
-                        .title
-                        .unwrap_or_default()
-                        .chars()
-                        .take(50)
-                        .collect::<String>(),
-                    track.artist.unwrap_or_default(),
-                    track.channel.unwrap_or_default(),
-                ))
+                let embed = CreateEmbed::new()
+                    .title("**⏯️ Now Playing**")
+                    .field(
+                        track.clone().artist.unwrap_or_default(),
+                        track.clone().title.unwrap_or_default(),
+                        true,
+                    )
+                    .description("".to_string())
+                    .image(track.clone().thumbnail.unwrap())
+                    .footer(
+                        CreateEmbedFooter::new(format!("Requested by: {}", ctx.author().name))
+                            .icon_url(ctx.author().avatar_url().unwrap_or_default()),
+                    )
+                    .color(Colour::from_rgb(0, 255, 0));
+                ctx.send(CreateReply {
+                    embeds: vec![embed],
+                    ..Default::default()
+                })
                 .await?;
             }
             v => {
-                ctx.say(format!(
-                    "✅ **Queued** at #{}\n\n**Title** - _{}_\n**Artist** - {}\n**Channel** - {}",
-                    v,
-                    track
-                        .title
-                        .unwrap_or_default()
-                        .chars()
-                        .take(50)
-                        .collect::<String>(),
-                    track.artist.unwrap_or_default(),
-                    track.channel.unwrap_or_default(),
-                ))
+                let embed = CreateEmbed::new()
+                    .title(format!("**✅ Queued at position #{}**", v))
+                    .field(
+                        track.clone().artist.unwrap_or_default(),
+                        track.clone().title.unwrap_or_default(),
+                        true,
+                    )
+                    .description("".to_string())
+                    .image(track.clone().thumbnail.unwrap())
+                    .footer(
+                        CreateEmbedFooter::new(format!("Requested by: {}", ctx.author().name))
+                            .icon_url(ctx.author().avatar_url().unwrap_or_default()),
+                    )
+                    .color(Colour::from_rgb(0, 255, 0));
+                ctx.send(CreateReply {
+                    embeds: vec![embed],
+                    ..Default::default()
+                })
                 .await?;
             }
         }
-        ctx.say(track.thumbnail.unwrap()).await?;
     }
 
     Ok(())

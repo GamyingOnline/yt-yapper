@@ -16,8 +16,11 @@ pub struct Scrobbler {
 }
 
 impl Scrobbler {
-    pub fn start_login(&self) -> String {
-        format!("http://www.last.fm/api/auth/?api_key={}", self.api_key)
+    pub fn start_login(&self, user_id: i64) -> String {
+        format!(
+            "http://www.last.fm/api/auth/?api_key={}&user_id={}",
+            self.api_key, user_id
+        )
     }
 
     pub async fn scrobble(&mut self, users: Vec<i64>, song_name: &str) -> Result<()> {
