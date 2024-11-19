@@ -1,3 +1,5 @@
+use poise::CreateReply;
+use serenity::all::{Colour, CreateEmbed};
 
 use crate::commands::utils::Error;
 
@@ -16,7 +18,14 @@ pub async fn now(ctx: Context<'_>) -> Result<(), Error> {
     };
 
     if let None = channel_id {
-        ctx.say("Not in a voice chat.").await?;
+        let embed = CreateEmbed::new()
+            .description("❌ Not in a voice chat.")
+            .color(Colour::from_rgb(255, 0, 0));
+        ctx.send(CreateReply {
+            embeds: vec![embed],
+            ..Default::default()
+        })
+        .await?;
         return Ok(());
     }
     let lock = ctx.data().queue.read().await;
@@ -24,31 +33,46 @@ pub async fn now(ctx: Context<'_>) -> Result<(), Error> {
     let queue = lock.get(&k);
 
     if let None = queue {
-        ctx.say("No music playing currently").await?;
+        let embed = CreateEmbed::new()
+            .description("❌ No music is playing.")
+            .color(Colour::from_rgb(255, 0, 0));
+        ctx.send(CreateReply {
+            embeds: vec![embed],
+            ..Default::default()
+        })
+        .await?;
         return Ok(());
     }
     let queue = queue.unwrap();
 
     let len = queue.len();
     if len == 0 {
-        ctx.say("Queue is empty currently").await?;
+        let embed = CreateEmbed::new()
+            .description("❌ Queue is currently empty.")
+            .color(Colour::from_rgb(255, 0, 0));
+        ctx.send(CreateReply {
+            embeds: vec![embed],
+            ..Default::default()
+        })
+        .await?;
         return Ok(());
     }
-    ctx.say(&format!(
-        "📋 **Currently Playing**\n\n{}",
-        queue
-            .iter()
-            .enumerate()
-            .map(|(index, song)| {
-                if index == 0 {
-                    format!("**{} - {} << **", index + 1, song)
-                } else {
-                    format!("{} - {}", index + 1, song)
-                }
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    ))
+    let embed = CreateEmbed::new()
+        .title("📋 **Currently Playing**")
+        .description("".to_string())
+        .fields(queue.iter().enumerate().map(|(index, song)| {
+            if index == 0 {
+                (format!("{}. {} ⬅️", index + 1, song), "", false)
+            } else {
+                (format!("{}. {}", index + 1, song), "", false)
+            }
+        }))
+        .color(Colour::from_rgb(0, 236, 255));
+    ctx.send(CreateReply {
+        embeds: vec![embed],
+        ..Default::default()
+    })
     .await?;
+
     Ok(())
 }

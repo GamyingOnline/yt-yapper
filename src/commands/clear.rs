@@ -1,3 +1,6 @@
+use poise::CreateReply;
+use serenity::all::{Colour, CreateEmbed};
+
 use crate::commands::utils::Error;
 
 use super::utils::Context;
@@ -16,7 +19,14 @@ pub async fn clear(ctx: Context<'_>) -> Result<(), Error> {
     };
 
     if let None = channel_id {
-        ctx.say("Not in a voice chat.").await?;
+        let embed = CreateEmbed::new()
+            .description("❌ Not in a voice chat.")
+            .color(Colour::from_rgb(255, 0, 0));
+        ctx.send(CreateReply {
+            embeds: vec![embed],
+            ..Default::default()
+        })
+        .await?;
         return Ok(());
     }
 
@@ -38,11 +48,25 @@ pub async fn clear(ctx: Context<'_>) -> Result<(), Error> {
             .unwrap()
             .clear();
         if queue.len() == 0 {
-            ctx.say(format!("❌ Nothing to clear")).await?;
+            let embed = CreateEmbed::new()
+                .description("❌ Nothing to clear.")
+                .color(Colour::from_rgb(255, 0, 0));
+            ctx.send(CreateReply {
+                embeds: vec![embed],
+                ..Default::default()
+            })
+            .await?;
             return Ok(());
         }
         queue.stop();
     }
-    ctx.say(format!("⏩ Queue Cleared")).await?;
+    let embed = CreateEmbed::new()
+        .description("⏩ Queue Cleared.")
+        .color(Colour::from_rgb(0, 255, 0));
+    ctx.send(CreateReply {
+        embeds: vec![embed],
+        ..Default::default()
+    })
+    .await?;
     Ok(())
 }
