@@ -1,7 +1,10 @@
 use std::error::Error;
 
+use commands::clear::clear;
 use commands::music::music;
+use commands::now::now;
 use commands::ping::ping;
+use commands::play::playlist;
 use commands::skip::skip;
 
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
@@ -11,6 +14,7 @@ use state::Data;
 
 mod commands;
 mod events;
+mod models;
 mod state;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -21,7 +25,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![music(), ping(), skip()],
+            commands: vec![playlist(), music(), ping(), skip(), clear(), now()],
             prefix_options: PrefixFrameworkOptions {
                 prefix: Some(";".to_string()),
                 ..Default::default()
@@ -33,6 +37,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data {
                     hc: HttpClient::new(),
+                    queue: Default::default(),
                 })
             })
         })
