@@ -62,9 +62,9 @@ pub async fn now(ctx: Context<'_>) -> Result<(), Error> {
         .description("".to_string())
         .fields(queue.iter().enumerate().map(|(index, song)| {
             if index == 0 {
-                (format!("{}. {} ⬅️", index + 1, song), "", false)
+                (format!("{}. {} ⬅️", index + 1, song.name), "", false)
             } else {
-                (format!("{}. {}", index + 1, song), "", false)
+                (format!("{}. {}", index + 1, song.name), "", false)
             }
         }))
         .color(Colour::from_rgb(0, 236, 255));

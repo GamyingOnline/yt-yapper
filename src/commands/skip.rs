@@ -1,7 +1,7 @@
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed};
 
-use crate::commands::utils::Error;
+use crate::{commands::utils::Error, state::Track};
 
 use super::utils::Context;
 
@@ -54,7 +54,7 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
             n.unwrap_or(1)
         };
         let k = &format!("{},{}", guild_id.get(), channel_id.get());
-        let mut skipped_songs = vec![];
+        let mut skipped_songs: Vec<Track> = vec![];
         for _ in 0..n_times {
             queue.skip()?;
             let pop = ctx
@@ -66,20 +66,18 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
                 .unwrap()
                 .pop_front();
             if let None = pop {
-                let embed = CreateEmbed::new()
-                    .title(format!(
-                        "⏩ Skipped {} {}",
-                        n_times,
-                        if n_times > 1 { "tracks" } else { "track" }
-                    ))
-                    .description("".to_string())
-                    .fields(
-                        skipped_songs
-                            .iter()
-                            .enumerate()
-                            .map(|(index, song)| (format!("{}. {}", index + 1, song), "", false)),
-                    )
-                    .color(Colour::from_rgb(0, 255, 0));
+                let embed =
+                    CreateEmbed::new()
+                        .title(format!(
+                            "⏩ Skipped {} {}",
+                            n_times,
+                            if n_times > 1 { "tracks" } else { "track" }
+                        ))
+                        .description("".to_string())
+                        .fields(skipped_songs.iter().enumerate().map(|(index, song)| {
+                            (format!("{}. {}", index + 1, song.name), "", false)
+                        }))
+                        .color(Colour::from_rgb(0, 255, 0));
                 ctx.send(CreateReply {
                     embeds: vec![embed],
                     ..Default::default()
@@ -100,7 +98,7 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
                 skipped_songs
                     .iter()
                     .enumerate()
-                    .map(|(index, song)| (format!("{}. {}", index + 1, song), "", false)),
+                    .map(|(index, song)| (format!("{}. {}", index + 1, song.name), "", false)),
             )
             .color(Colour::from_rgb(0, 255, 0));
         ctx.send(CreateReply {

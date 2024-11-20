@@ -7,7 +7,9 @@ use songbird::{
     TrackEvent,
 };
 
-use crate::{commands::utils::Error, events::track_error_notifier::TrackErrorNotifier};
+use crate::{
+    commands::utils::Error, events::track_error_notifier::TrackErrorNotifier, state::Track,
+};
 
 use super::utils::Context;
 
@@ -66,7 +68,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                 queues: ctx.data().queue.clone(),
             },
         );
-        handler.enqueue_input(src.clone().into()).await;
+        let track_handle = handler.enqueue_input(src.clone().into()).await;
         match handler.queue().len() {
             1 => {
                 let embed = CreateEmbed::new()
@@ -88,12 +90,11 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                     ..Default::default()
                 })
                 .await?;
-                queues
-                    .write()
-                    .await
-                    .get_mut(&k)
-                    .unwrap()
-                    .push_back((&track.title.clone().unwrap()).clone());
+
+                queues.write().await.get_mut(&k).unwrap().push_back(Track {
+                    name: (&track.title.clone().unwrap()).clone(),
+                    handle_uuid: track_handle.uuid().to_string(),
+                });
             }
             v => {
                 let embed = CreateEmbed::new()
@@ -115,12 +116,11 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                     ..Default::default()
                 })
                 .await?;
-                queues
-                    .write()
-                    .await
-                    .get_mut(&k)
-                    .unwrap()
-                    .push_back((&track.title.clone().unwrap()).clone());
+
+                queues.write().await.get_mut(&k).unwrap().push_back(Track {
+                    name: (&track.title.clone().unwrap()).clone(),
+                    handle_uuid: track_handle.uuid().to_string(),
+                });
             }
         }
     }
