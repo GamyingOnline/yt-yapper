@@ -1,11 +1,12 @@
 use std::error::Error;
 
-use commands::clear::clear;
 use commands::music::music;
 use commands::now::now;
+use commands::pause::pause;
 use commands::ping::ping;
 use commands::play::playlist;
 use commands::skip::skip;
+use commands::{clear::clear, repeat::repeat};
 
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
 use reqwest::Client as HttpClient;
@@ -25,7 +26,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![playlist(), music(), ping(), skip(), clear(), now()],
+            commands: vec![
+                playlist(),
+                music(),
+                ping(),
+                skip(),
+                clear(),
+                now(),
+                repeat(),
+                pause(),
+            ],
             prefix_options: PrefixFrameworkOptions {
                 prefix: Some(";".to_string()),
                 ..Default::default()
