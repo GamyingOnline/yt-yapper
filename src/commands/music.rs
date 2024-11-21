@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::vec::Vec;
 
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
@@ -14,7 +15,7 @@ use crate::{
 use super::utils::Context;
 
 /// Plays music - pass the name of song.
-#[poise::command(prefix_command)]
+#[poise::command(prefix_command, aliases("play"))]
 pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error> {
     let (guild_id, channel_id) = {
         let guild = ctx.guild().expect("Guild only command");
