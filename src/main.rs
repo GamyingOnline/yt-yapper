@@ -36,6 +36,29 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 repeat(),
                 pause(),
             ],
+            event_handler: |ctx, event, _, _| match event {
+                serenity::FullEvent::VoiceStateUpdate { new, .. } => Box::pin(async move {
+                    let manager = songbird::get(&ctx)
+                        .await
+                        .expect("Songbird Voice client placed in at initialisation.")
+                        .clone();
+                    let handler = manager.get(new.guild_id.unwrap()).unwrap();
+                    let handler_lock = handler.lock().await;
+                    if let None = handler_lock.queue().current() {
+                        return Ok(());
+                    }
+                    match new.mute {
+                        true => {
+                            handler_lock.queue().current().unwrap().pause().unwrap();
+                        }
+                        false => {
+                            handler_lock.queue().current().unwrap().play().unwrap();
+                        }
+                    }
+                    Ok(())
+                }),
+                _ => Box::pin(async move { Ok(()) }),
+            },
             prefix_options: PrefixFrameworkOptions {
                 prefix: Some(";".to_string()),
                 ..Default::default()
