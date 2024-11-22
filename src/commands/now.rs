@@ -5,7 +5,7 @@ use crate::commands::utils::Error;
 
 use super::utils::Context;
 
-#[poise::command(prefix_command)]
+#[poise::command(prefix_command, aliases("queue"))]
 pub async fn now(ctx: Context<'_>) -> Result<(), Error> {
     let (guild_id, channel_id) = {
         let guild = ctx.guild().expect("Guild only command");
