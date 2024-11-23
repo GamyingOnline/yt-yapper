@@ -10,6 +10,9 @@ use tokio::sync::RwLock;
 pub struct Track {
     pub name: String,
     pub handle_uuid: String,
+    pub artist: String,
+    pub duration: String,
+    pub thumbnail: String,
 }
 
 #[derive(Debug)]

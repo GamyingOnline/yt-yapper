@@ -4,6 +4,7 @@ use std::{
 };
 
 use ::serenity::async_trait;
+use serenity::all::{ChannelId, Colour, Context, CreateEmbed, CreateMessage};
 use songbird::{
     events::{Event, EventContext, EventHandler as VoiceEventHandler},
     tracks::PlayMode,
@@ -15,6 +16,8 @@ pub struct TrackErrorNotifier {
     pub queues: Arc<RwLock<HashMap<String, VecDeque<Track>>>>,
     pub channel_id: u64,
     pub guild_id: u64,
+    pub message_channel_id: u64,
+    pub context: Context,
 }
 
 #[async_trait]
@@ -27,17 +30,36 @@ impl VoiceEventHandler for TrackErrorNotifier {
                 return None;
             }
             let (state, handle) = state.unwrap();
-            if state.playing == PlayMode::End || state.playing == PlayMode::Stop {
-                let track = { self.queues.read().await.get(&k).unwrap().front().cloned() };
 
-                if let Some(track) = track {
-                    if track.handle_uuid == handle.uuid().to_string() {
+            let track = { self.queues.read().await.get(&k).unwrap().front().cloned() };
+            if let Some(track) = track {
+                if track.handle_uuid == handle.uuid().to_string() {
+                    if state.playing == PlayMode::End || state.playing == PlayMode::Stop {
                         {
                             self.queues.write().await.get_mut(&k).unwrap().pop_front();
                         }
+                        let new_track =
+                            { self.queues.read().await.get(&k).unwrap().front().cloned() };
+
+                        if let Some(new_track) = new_track {
+                            let embed = CreateEmbed::new()
+                                .title("**⏯️ Now Playing**")
+                                .field(
+                                    new_track.artist,
+                                    format!("{} [{}]", new_track.name, new_track.duration),
+                                    true,
+                                )
+                                .description("".to_string())
+                                .image(new_track.thumbnail)
+                                .color(Colour::from_rgb(0, 255, 0));
+                            ChannelId::new(self.message_channel_id)
+                                .send_message(&self.context, CreateMessage::new().add_embed(embed))
+                                .await
+                                .expect("failed to send message");
+                            return None;
+                        }
                     }
                 }
-                return None;
             }
         }
         None

@@ -57,14 +57,15 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
         let mut skipped_songs: Vec<Track> = vec![];
         for _ in 0..n_times {
             queue.skip()?;
-            let pop = ctx
-                .data()
-                .queue
-                .write()
-                .await
-                .get_mut(k)
-                .unwrap()
-                .pop_front();
+            let pop = {
+                ctx.data()
+                    .queue
+                    .write()
+                    .await
+                    .get_mut(k)
+                    .unwrap()
+                    .pop_front()
+            };
             if let None = pop {
                 let embed =
                     CreateEmbed::new()
@@ -83,6 +84,33 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
                     ..Default::default()
                 })
                 .await?;
+                let next_track = {
+                    ctx.data()
+                        .queue
+                        .read()
+                        .await
+                        .get(k)
+                        .unwrap()
+                        .front()
+                        .cloned()
+                };
+                if let Some(next_track) = next_track {
+                    let embed = CreateEmbed::new()
+                        .title("**⏯️ Now Playing**")
+                        .field(
+                            next_track.artist,
+                            format!("{} [{}]", next_track.name, next_track.duration),
+                            true,
+                        )
+                        .description("".to_string())
+                        .image(next_track.thumbnail)
+                        .color(Colour::from_rgb(0, 255, 0));
+                    ctx.send(CreateReply {
+                        embeds: vec![embed],
+                        ..Default::default()
+                    })
+                    .await?;
+                }
                 return Ok(());
             }
             skipped_songs.push(pop.unwrap());
@@ -106,6 +134,35 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
             ..Default::default()
         })
         .await?;
+
+        let next_track = {
+            ctx.data()
+                .queue
+                .read()
+                .await
+                .get(k)
+                .unwrap()
+                .front()
+                .cloned()
+        };
+
+        if let Some(next_track) = next_track {
+            let embed = CreateEmbed::new()
+                .title("**⏯️ Now Playing**")
+                .field(
+                    next_track.artist,
+                    format!("{} [{}]", next_track.name, next_track.duration),
+                    true,
+                )
+                .description("".to_string())
+                .image(next_track.thumbnail)
+                .color(Colour::from_rgb(0, 255, 0));
+            ctx.send(CreateReply {
+                embeds: vec![embed],
+                ..Default::default()
+            })
+            .await?;
+        }
     }
     Ok(())
 }

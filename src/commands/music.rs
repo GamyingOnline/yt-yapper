@@ -9,7 +9,9 @@ use songbird::{
 };
 
 use crate::{
-    commands::utils::Error, events::track_error_notifier::TrackErrorNotifier, state::Track,
+    commands::utils::{duration_to_time, Error},
+    events::track_error_notifier::TrackErrorNotifier,
+    state::Track,
 };
 
 use super::utils::Context;
@@ -67,6 +69,8 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                 channel_id: channel_id.get(),
                 guild_id: guild_id.get(),
                 queues: ctx.data().queue.clone(),
+                context: ctx.serenity_context().clone(),
+                message_channel_id: ctx.channel_id().get(),
             },
         );
         let track_handle = handler.enqueue_input(src.clone().into()).await;
@@ -76,7 +80,11 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                     .title("**⏯️ Now Playing**")
                     .field(
                         track.clone().artist.unwrap_or_default(),
-                        track.clone().title.unwrap_or_default(),
+                        format!(
+                            "{} [{}]",
+                            track.clone().title.unwrap_or_default(),
+                            duration_to_time(track.clone().duration.unwrap())
+                        ),
                         true,
                     )
                     .description("".to_string())
@@ -93,8 +101,11 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                 .await?;
 
                 queues.write().await.get_mut(&k).unwrap().push_back(Track {
-                    name: (&track.title.clone().unwrap()).clone(),
+                    name: track.title.clone().unwrap(),
                     handle_uuid: track_handle.uuid().to_string(),
+                    artist: track.artist.clone().unwrap_or_default(),
+                    duration: duration_to_time(track.duration.clone().unwrap()),
+                    thumbnail: track.thumbnail.clone().unwrap(),
                 });
             }
             v => {
@@ -102,7 +113,11 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                     .title(format!("**✅ Queued at position #{}**", v))
                     .field(
                         track.clone().artist.unwrap_or_default(),
-                        track.clone().title.unwrap_or_default(),
+                        format!(
+                            "{} [{}]",
+                            track.clone().title.unwrap_or_default(),
+                            duration_to_time(track.clone().duration.unwrap())
+                        ),
                         true,
                     )
                     .description("".to_string())
@@ -119,8 +134,11 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                 .await?;
 
                 queues.write().await.get_mut(&k).unwrap().push_back(Track {
-                    name: (&track.title.clone().unwrap()).clone(),
+                    name: track.title.clone().unwrap(),
                     handle_uuid: track_handle.uuid().to_string(),
+                    artist: track.artist.clone().unwrap_or_default(),
+                    duration: duration_to_time(track.duration.clone().unwrap()),
+                    thumbnail: track.thumbnail.clone().unwrap(),
                 });
             }
         }
