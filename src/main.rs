@@ -40,21 +40,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
             ],
             event_handler: |ctx, event, _, _| match event {
                 serenity::FullEvent::VoiceStateUpdate { new, .. } => Box::pin(async move {
-                    let manager = songbird::get(&ctx)
-                        .await
-                        .expect("Songbird Voice client placed in at initialisation.")
-                        .clone();
-                    let handler = manager.get(new.guild_id.unwrap()).unwrap();
-                    let handler_lock = handler.lock().await;
-                    if let None = handler_lock.queue().current() {
-                        return Ok(());
-                    }
-                    match new.mute {
-                        true => {
-                            handler_lock.queue().current().unwrap().pause().unwrap();
+                    if new.user_id.to_string() == ctx.http.application_id().unwrap().to_string() {
+                        let manager = songbird::get(&ctx)
+                            .await
+                            .expect("Songbird Voice client placed in at initialisation.")
+                            .clone();
+                        let handler = manager.get(new.guild_id.unwrap()).unwrap();
+                        let handler_lock = handler.lock().await;
+                        if let None = handler_lock.queue().current() {
+                            return Ok(());
                         }
-                        false => {
-                            handler_lock.queue().current().unwrap().play().unwrap();
+                        match new.mute {
+                            true => {
+                                handler_lock.queue().current().unwrap().pause().unwrap();
+                            }
+                            false => {
+                                handler_lock.queue().current().unwrap().play().unwrap();
+                            }
                         }
                     }
                     Ok(())
