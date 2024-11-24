@@ -5,6 +5,7 @@ use commands::now::now;
 use commands::pause::pause;
 use commands::ping::ping;
 use commands::play::playlist;
+use commands::remove::remove;
 use commands::seek::seek;
 use commands::skip::skip;
 use commands::{clear::clear, repeat::repeat};
@@ -37,6 +38,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 repeat(),
                 pause(),
                 seek(),
+                remove(),
             ],
             event_handler: |ctx, event, _, _| match event {
                 serenity::FullEvent::VoiceStateUpdate { new, .. } => Box::pin(async move {
