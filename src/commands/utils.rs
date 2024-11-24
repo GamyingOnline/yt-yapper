@@ -15,3 +15,29 @@ pub fn duration_to_time(duration: Duration) -> String {
 
     return format!("{}:{:02}:{:02}", hours, mins, secs);
 }
+
+pub fn time_to_duration(time: &String) -> Duration {
+    let split_str = time
+        .split(':')
+        .map(|x| x.parse::<u64>().ok().expect(&format!("cannot parse {}", x)))
+        .collect::<Vec<_>>();
+
+    let mut secs: u64 = 0;
+
+    match split_str.len() {
+        3 => {
+            secs = split_str[2];
+            secs += split_str[0] * 3600;
+            secs += split_str[1] * 60;
+        }
+        2 => {
+            secs = split_str[1];
+            secs += split_str[0] * 60;
+        }
+        1 => {
+            secs = split_str[0];
+        }
+        _ => {}
+    }
+    Duration::new(secs, 0)
+}
