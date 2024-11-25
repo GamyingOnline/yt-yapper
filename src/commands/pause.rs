@@ -4,7 +4,7 @@ use songbird::tracks::PlayMode;
 
 use super::utils::{Context, Error};
 
-#[poise::command(prefix_command)]
+#[poise::command(prefix_command, aliases("resume"))]
 pub async fn pause(ctx: Context<'_>) -> Result<(), Error> {
     let (guild_id, channel_id) = {
         let guild = ctx.guild().expect("Guild only message");
