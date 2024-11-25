@@ -19,7 +19,7 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
 
     if let None = channel_id {
         let embed = CreateEmbed::new()
-            .description("❌ Not in a voice chat.")
+            .title("❌ Not in a voice chat.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -39,7 +39,7 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
         let queue = handler.queue();
         if queue.len() == 0 {
             let embed = CreateEmbed::new()
-                .description("❌ Nothing to skip.")
+                .title("❌ Nothing to skip.")
                 .color(Colour::from_rgb(255, 0, 0));
             ctx.send(CreateReply {
                 embeds: vec![embed],
@@ -74,7 +74,6 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
                             n_times,
                             if n_times > 1 { "tracks" } else { "track" }
                         ))
-                        .description("".to_string())
                         .fields(skipped_songs.iter().enumerate().map(|(index, song)| {
                             (format!("{}. {}", index + 1, song.name), "", false)
                         }))
@@ -102,7 +101,6 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
                             format!("{} [{}]", next_track.name, next_track.duration),
                             true,
                         )
-                        .description("".to_string())
                         .image(next_track.thumbnail)
                         .color(Colour::from_rgb(0, 255, 0));
                     ctx.send(CreateReply {
@@ -121,7 +119,6 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
                 n_times,
                 if n_times > 1 { "tracks" } else { "track" }
             ))
-            .description("".to_string())
             .fields(
                 skipped_songs
                     .iter()
@@ -154,7 +151,6 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
                     format!("{} [{}]", next_track.name, next_track.duration),
                     true,
                 )
-                .description("".to_string())
                 .image(next_track.thumbnail)
                 .color(Colour::from_rgb(0, 255, 0));
             ctx.send(CreateReply {

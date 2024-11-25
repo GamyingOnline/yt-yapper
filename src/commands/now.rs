@@ -19,7 +19,7 @@ pub async fn now(ctx: Context<'_>) -> Result<(), Error> {
 
     if let None = channel_id {
         let embed = CreateEmbed::new()
-            .description("❌ Not in a voice chat.")
+            .title("❌ Not in a voice chat.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -34,7 +34,7 @@ pub async fn now(ctx: Context<'_>) -> Result<(), Error> {
 
     if let None = queue {
         let embed = CreateEmbed::new()
-            .description("❌ No music is playing.")
+            .title("❌ No music is playing.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -48,7 +48,7 @@ pub async fn now(ctx: Context<'_>) -> Result<(), Error> {
     let len = queue.len();
     if len == 0 {
         let embed = CreateEmbed::new()
-            .description("❌ Queue is currently empty.")
+            .title("❌ Queue is currently empty.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -59,7 +59,7 @@ pub async fn now(ctx: Context<'_>) -> Result<(), Error> {
     }
     let embed = CreateEmbed::new()
         .title("📋 **Currently Playing**")
-        .description("".to_string())
+        .title("".to_string())
         .fields(queue.iter().enumerate().map(|(index, song)| {
             if index == 0 {
                 (

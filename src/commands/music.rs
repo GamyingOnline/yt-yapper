@@ -31,7 +31,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
 
     if let None = channel_id {
         let embed = CreateEmbed::new()
-            .description("❌ Not in a voice chat.")
+            .title("❌ Not in a voice chat.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -87,7 +87,6 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                         ),
                         true,
                     )
-                    .description("".to_string())
                     .image(track.clone().thumbnail.unwrap())
                     .footer(
                         CreateEmbedFooter::new(format!("Requested by: {}", ctx.author().name))
@@ -120,7 +119,6 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                         ),
                         true,
                     )
-                    .description("".to_string())
                     .image(track.clone().thumbnail.unwrap())
                     .footer(
                         CreateEmbedFooter::new(format!("Requested by: {}", ctx.author().name))

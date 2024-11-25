@@ -17,7 +17,7 @@ pub async fn pause(ctx: Context<'_>) -> Result<(), Error> {
     };
     if let None = channel_id {
         let embed = CreateEmbed::new()
-            .description("❌ Not in a voice chat.")
+            .title("❌ Not in a voice chat.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -37,7 +37,7 @@ pub async fn pause(ctx: Context<'_>) -> Result<(), Error> {
     let handler_lock = handler.lock().await;
     if let None = handler_lock.queue().current() {
         let embed = CreateEmbed::new()
-            .description("❌ Nothing is playing.")
+            .title("❌ Nothing is playing.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -70,7 +70,7 @@ pub async fn pause(ctx: Context<'_>) -> Result<(), Error> {
         handler_lock.queue().current().unwrap().pause().unwrap();
         let embed = CreateEmbed::new()
             .title("⏸️ Paused.")
-            .description(track.unwrap().name)
+            .title(track.unwrap().name)
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -82,7 +82,7 @@ pub async fn pause(ctx: Context<'_>) -> Result<(), Error> {
     handler_lock.queue().current().unwrap().play().unwrap();
     let embed = CreateEmbed::new()
         .title("▶️ Resumed.")
-        .description(track.unwrap().name)
+        .title(track.unwrap().name)
         .color(Colour::from_rgb(0, 255, 0));
     ctx.send(CreateReply {
         embeds: vec![embed],

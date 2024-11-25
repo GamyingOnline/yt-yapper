@@ -49,7 +49,6 @@ impl VoiceEventHandler for TrackErrorNotifier {
                                     format!("{} [{}]", new_track.name, new_track.duration),
                                     true,
                                 )
-                                .description("".to_string())
                                 .image(new_track.thumbnail)
                                 .color(Colour::from_rgb(0, 255, 0));
                             ChannelId::new(self.message_channel_id)

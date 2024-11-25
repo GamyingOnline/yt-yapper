@@ -7,7 +7,7 @@ use super::utils::{Context, Error};
 pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
     if n < 1 {
         let embed = CreateEmbed::new()
-            .description("❌ Number must be greater than 0.")
+            .title("❌ Number must be greater than 0.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -27,7 +27,7 @@ pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
     };
     if let None = channel_id {
         let embed = CreateEmbed::new()
-            .description("❌ Not in a voice chat.")
+            .title("❌ Not in a voice chat.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -47,7 +47,7 @@ pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
     let handler_lock = handler.lock().await;
     if let None = handler_lock.queue().current() {
         let embed = CreateEmbed::new()
-            .description("❌ Nothing is playing.")
+            .title("❌ Nothing is playing.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -59,7 +59,7 @@ pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
     let k = format!("{},{}", guild_id, channel_id);
     if handler_lock.queue().len() < n.try_into().unwrap() {
         let embed = CreateEmbed::new()
-            .description("❌ Number cannot be larger than the queue size.")
+            .title("❌ Number cannot be larger than the queue size.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -85,7 +85,6 @@ pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
     }
     let embed = CreateEmbed::new()
         .title("✅ Removed Track")
-        .description("".to_string())
         .field(format!("{} - {}", track.artist, track.name), "", false)
         .color(Colour::from_rgb(0, 255, 0));
     ctx.send(CreateReply {

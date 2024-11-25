@@ -20,7 +20,7 @@ pub async fn clear(ctx: Context<'_>) -> Result<(), Error> {
 
     if let None = channel_id {
         let embed = CreateEmbed::new()
-            .description("❌ Not in a voice chat.")
+            .title("❌ Not in a voice chat.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -49,7 +49,7 @@ pub async fn clear(ctx: Context<'_>) -> Result<(), Error> {
             .clear();
         if queue.len() == 0 {
             let embed = CreateEmbed::new()
-                .description("❌ Nothing to clear.")
+                .title("❌ Nothing to clear.")
                 .color(Colour::from_rgb(255, 0, 0));
             ctx.send(CreateReply {
                 embeds: vec![embed],
@@ -61,7 +61,7 @@ pub async fn clear(ctx: Context<'_>) -> Result<(), Error> {
         queue.stop();
     }
     let embed = CreateEmbed::new()
-        .description("⏩ Queue Cleared.")
+        .title("⏩ Queue Cleared.")
         .color(Colour::from_rgb(0, 255, 0));
     ctx.send(CreateReply {
         embeds: vec![embed],

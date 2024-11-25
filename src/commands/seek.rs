@@ -20,7 +20,7 @@ pub async fn seek(ctx: Context<'_>, time: String) -> Result<(), Error> {
     };
     if let None = channel_id {
         let embed = CreateEmbed::new()
-            .description("❌ Not in a voice chat.")
+            .title("❌ Not in a voice chat.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -39,7 +39,7 @@ pub async fn seek(ctx: Context<'_>, time: String) -> Result<(), Error> {
     let handler_lock = handler.lock().await;
     if let None = handler_lock.queue().current() {
         let embed = CreateEmbed::new()
-            .description("❌ Nothing is playing.")
+            .title("❌ Nothing is playing.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
@@ -63,7 +63,7 @@ pub async fn seek(ctx: Context<'_>, time: String) -> Result<(), Error> {
 
     if track_duration < duration {
         let embed = CreateEmbed::new()
-            .description("❌ Seek value cannot be greater than duration.")
+            .title("❌ Seek value cannot be greater than duration.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
