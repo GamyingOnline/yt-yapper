@@ -1,12 +1,14 @@
 use poise::CreateReply;
-use serenity::all::{Colour, CreateEmbed};
+use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 
-use crate::commands::utils::Error;
+use crate::{commands::utils::Error, models::pagination::PaginatedQueue};
 
 use super::utils::Context;
 
+// TODO: make a button to change pages instead of entering page number
 #[poise::command(prefix_command, aliases("queue"))]
-pub async fn now(ctx: Context<'_>) -> Result<(), Error> {
+pub async fn now(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
+    let n = n.unwrap_or(1);
     let (guild_id, channel_id) = {
         let guild = ctx.guild().expect("Guild only command");
         let channel_id = guild
@@ -57,36 +59,28 @@ pub async fn now(ctx: Context<'_>) -> Result<(), Error> {
         .await?;
         return Ok(());
     }
+    let paginated_queue = PaginatedQueue::new(queue, len, n);
+    let pages = paginated_queue.total_pages();
+
+    if n > pages {
+        let embed = CreateEmbed::new()
+            .title(format!(
+                "❌ Number cannot be larger than total pages({})",
+                pages
+            ))
+            .color(Colour::from_rgb(255, 0, 0));
+        ctx.send(CreateReply {
+            embeds: vec![embed],
+            ..Default::default()
+        })
+        .await?;
+        return Ok(());
+    }
     let embed = CreateEmbed::new()
         .title("📋 **Currently Playing**")
         .title("".to_string())
-        .fields(queue.iter().enumerate().map(|(index, song)| {
-            if index == 0 {
-                (
-                    format!(
-                        "{}. {} - {}[{}] ⬅️",
-                        index + 1,
-                        song.artist,
-                        song.name,
-                        song.duration
-                    ),
-                    "",
-                    false,
-                )
-            } else {
-                (
-                    format!(
-                        "{}. {} - {}[{}]",
-                        index + 1,
-                        song.artist,
-                        song.name,
-                        song.duration
-                    ),
-                    "",
-                    false,
-                )
-            }
-        }))
+        .fields(paginated_queue.get_fields())
+        .footer(CreateEmbedFooter::new(format!("Total Pages: {}", pages)))
         .color(Colour::from_rgb(0, 236, 255));
     ctx.send(CreateReply {
         embeds: vec![embed],
