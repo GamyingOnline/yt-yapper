@@ -119,7 +119,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                         ),
                         true,
                     )
-                    .image(track.clone().thumbnail.unwrap())
+                    .thumbnail(track.clone().thumbnail.unwrap())
                     .footer(
                         CreateEmbedFooter::new(format!("Requested by: {}", ctx.author().name))
                             .icon_url(ctx.author().avatar_url().unwrap_or_default()),
