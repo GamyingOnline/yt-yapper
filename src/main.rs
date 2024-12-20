@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use commands::fmlogin::fmlogin;
 use commands::music::music;
 use commands::now::now;
 use commands::pause::pause;
@@ -10,6 +11,8 @@ use commands::seek::seek;
 use commands::skip::skip;
 use commands::{clear::clear, repeat::repeat};
 
+use dotenv::dotenv;
+use persistence::connect;
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
 use reqwest::Client as HttpClient;
 use songbird::SerenityInit;
@@ -18,9 +21,13 @@ use state::Data;
 mod commands;
 mod events;
 mod models;
+mod persistence;
+mod scrobbler;
 mod state;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let _ = dotenv();
     tracing_subscriber::fmt().init();
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let intents =
@@ -39,6 +46,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 pause(),
                 seek(),
                 remove(),
+                fmlogin(),
             ],
             event_handler: |ctx, event, _, _| match event {
                 serenity::FullEvent::VoiceStateUpdate { new, .. } => Box::pin(async move {
@@ -77,6 +85,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 Ok(Data {
                     hc: HttpClient::new(),
                     queue: Default::default(),
+                    sql_conn: connect().await?,
                 })
             })
         })

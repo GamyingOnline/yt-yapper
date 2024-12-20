@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use std::vec::Vec;
 
 use poise::CreateReply;
+use rustfm_scrobble::Scrobble;
 use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 use songbird::{
     input::{Compose, YoutubeDl},
@@ -11,6 +12,7 @@ use songbird::{
 use crate::{
     commands::utils::{duration_to_time, Error},
     events::track_error_notifier::TrackErrorNotifier,
+    scrobbler::now_playing,
     state::Track,
 };
 
@@ -61,6 +63,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
         }
     }
     let track = src.clone().aux_metadata().await?;
+
     if let Ok(handler_lock) = manager.join(guild_id, channel_id).await {
         let mut handler = handler_lock.lock().await;
         handler.add_global_event(
@@ -71,23 +74,55 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                 queues: ctx.data().queue.clone(),
                 context: ctx.serenity_context().clone(),
                 message_channel_id: ctx.channel_id().get(),
+                sql_conn: ctx.data().sql_conn.clone(),
             },
         );
         let track_handle = handler.enqueue_input(src.clone().into()).await;
+
+        println!("{:?}", track);
+
+        let mut track = Track {
+            artist: track.clone().artist.unwrap_or_default(),
+            name: track.clone().title.unwrap_or_default().clone(),
+            handle_uuid: track_handle.uuid().to_string(),
+            duration: duration_to_time(track.clone().duration.unwrap_or_default().clone()),
+            thumbnail: track.clone().thumbnail.unwrap(),
+            can_scrobble: false,
+        };
+
+        // let query = RecordingSearchQuery::query_builder()
+        //     .artist(&track.clone().artist)
+        //     .recording(&track.clone().name)
+        //     .build();
+
+        // let query_result = Recording::search(query).execute().await.unwrap();
+        // println!("{:?}", query_result);
+        // if query_result.count > 0 {
+        //     let track_details = &query_result.entities[0];
+        //     track.name = track_details.title.clone();
+        //     let artists = track_details
+        //         .artist_credit
+        //         .clone()
+        //         .unwrap()
+        //         .iter()
+        //         .map(|artist| artist.artist.name.clone())
+        //         .collect::<Vec<String>>()
+        //         .join(", ");
+        //     track.artist = artists;
+        //     // TODO: fetch coverart
+        //     track.can_scrobble = true;
+        // }
+
         match handler.queue().len() {
             1 => {
                 let embed = CreateEmbed::new()
                     .title("**⏯️ Now Playing**")
                     .field(
-                        track.clone().artist.unwrap_or_default(),
-                        format!(
-                            "{} [{}]",
-                            track.clone().title.unwrap_or_default(),
-                            duration_to_time(track.clone().duration.unwrap())
-                        ),
+                        track.clone().artist,
+                        format!("{} [{}]", track.clone().name, track.duration),
                         true,
                     )
-                    .image(track.clone().thumbnail.unwrap())
+                    .image(track.clone().thumbnail)
                     .footer(
                         CreateEmbedFooter::new(format!("Requested by: {}", ctx.author().name))
                             .icon_url(ctx.author().avatar_url().unwrap_or_default()),
@@ -99,27 +134,40 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                 })
                 .await?;
 
-                queues.write().await.get_mut(&k).unwrap().push_back(Track {
-                    name: track.title.clone().unwrap(),
-                    handle_uuid: track_handle.uuid().to_string(),
-                    artist: track.artist.clone().unwrap_or_default(),
-                    duration: duration_to_time(track.duration.clone().unwrap()),
-                    thumbnail: track.thumbnail.clone().unwrap(),
-                });
+                queues
+                    .write()
+                    .await
+                    .get_mut(&k)
+                    .unwrap()
+                    .push_back(track.clone());
+
+                if track.can_scrobble {
+                    let song = Scrobble::new(&track.artist, &track.name, "");
+
+                    let users: Vec<u64> = ctx
+                        .guild()
+                        .unwrap()
+                        .channels
+                        .get(&channel_id)
+                        .unwrap()
+                        .members(&ctx)
+                        .unwrap()
+                        .iter()
+                        .map(|member| member.user.id.get())
+                        .collect();
+
+                    now_playing(song, users, &ctx.data().sql_conn).await;
+                }
             }
             v => {
                 let embed = CreateEmbed::new()
                     .title(format!("**✅ Queued at position #{}**", v))
                     .field(
-                        track.clone().artist.unwrap_or_default(),
-                        format!(
-                            "{} [{}]",
-                            track.clone().title.unwrap_or_default(),
-                            duration_to_time(track.clone().duration.unwrap())
-                        ),
+                        track.clone().artist,
+                        format!("{} [{}]", track.clone().name, track.clone().duration),
                         true,
                     )
-                    .thumbnail(track.clone().thumbnail.unwrap())
+                    .thumbnail(track.clone().thumbnail)
                     .footer(
                         CreateEmbedFooter::new(format!("Requested by: {}", ctx.author().name))
                             .icon_url(ctx.author().avatar_url().unwrap_or_default()),
@@ -131,13 +179,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                 })
                 .await?;
 
-                queues.write().await.get_mut(&k).unwrap().push_back(Track {
-                    name: track.title.clone().unwrap(),
-                    handle_uuid: track_handle.uuid().to_string(),
-                    artist: track.artist.clone().unwrap_or_default(),
-                    duration: duration_to_time(track.duration.clone().unwrap()),
-                    thumbnail: track.thumbnail.clone().unwrap(),
-                });
+                queues.write().await.get_mut(&k).unwrap().push_back(track);
             }
         }
     }

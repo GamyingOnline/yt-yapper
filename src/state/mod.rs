@@ -4,6 +4,7 @@ use std::{
 };
 
 use reqwest::Client as HttpClient;
+use sqlx::SqlitePool;
 use tokio::sync::RwLock;
 
 #[derive(Debug, Clone)]
@@ -13,12 +14,14 @@ pub struct Track {
     pub artist: String,
     pub duration: String,
     pub thumbnail: String,
+    pub can_scrobble: bool,
 }
 
 #[derive(Debug)]
 pub struct Data {
     pub hc: HttpClient,
     pub queue: Arc<RwLock<HashMap<String, VecDeque<Track>>>>,
+    pub sql_conn: SqlitePool,
 }
 
 // pub struct Track {
