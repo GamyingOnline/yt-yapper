@@ -2,6 +2,8 @@ use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed};
 use songbird::tracks::PlayMode;
 
+use crate::queue::EventfulQueueKey;
+
 use super::utils::{Context, Error};
 
 #[poise::command(prefix_command, aliases("resume"))]
@@ -46,17 +48,11 @@ pub async fn pause(ctx: Context<'_>) -> Result<(), Error> {
         .await?;
         return Ok(());
     }
-    let k = format!("{},{}", guild_id, channel_id);
-    let track = {
-        ctx.data()
-            .queue
-            .read()
-            .await
-            .get(&k)
-            .unwrap()
-            .front()
-            .cloned()
+    let k = EventfulQueueKey {
+        guild_id,
+        channel_id,
     };
+    let track = { ctx.data().queue.read().await.front(k).await.cloned() };
     if handler_lock
         .queue()
         .current()

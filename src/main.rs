@@ -10,6 +10,7 @@ use commands::seek::seek;
 use commands::skip::skip;
 use commands::{clear::clear, repeat::repeat};
 
+use dotenv::dotenv;
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
 use reqwest::Client as HttpClient;
 use songbird::SerenityInit;
@@ -18,9 +19,12 @@ use state::Data;
 mod commands;
 mod events;
 mod models;
+mod queue;
 mod state;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let _ = dotenv();
     tracing_subscriber::fmt().init();
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let intents =
@@ -49,7 +53,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             .clone();
                         let handler = manager.get(new.guild_id.unwrap()).unwrap();
                         let handler_lock = handler.lock().await;
-                        if let None = handler_lock.queue().current() {
+                        if handler_lock.queue().current().is_none() {
                             return Ok(());
                         }
                         match new.mute {

@@ -1,7 +1,7 @@
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed};
 
-use crate::commands::utils::time_to_duration;
+use crate::{commands::utils::time_to_duration, queue::EventfulQueueKey};
 
 use super::utils::{Context, Error};
 
@@ -48,17 +48,11 @@ pub async fn seek(ctx: Context<'_>, time: String) -> Result<(), Error> {
         .await?;
         return Ok(());
     }
-    let k = format!("{},{}", guild_id, channel_id);
-    let track = {
-        ctx.data()
-            .queue
-            .read()
-            .await
-            .get(&k)
-            .unwrap()
-            .front()
-            .cloned()
+    let k = EventfulQueueKey {
+        guild_id,
+        channel_id,
     };
+    let track = { ctx.data().queue.read().await.front(k).await.cloned() };
     let track_duration = time_to_duration(&track.unwrap().duration);
 
     if track_duration < duration {

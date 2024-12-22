@@ -1,7 +1,7 @@
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 
-use crate::{commands::utils::Error, models::pagination::PaginatedQueue};
+use crate::{commands::utils::Error, models::pagination::PaginatedQueue, queue::EventfulQueueKey};
 
 use super::utils::Context;
 
@@ -31,8 +31,11 @@ pub async fn now(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
         return Ok(());
     }
     let lock = ctx.data().queue.read().await;
-    let k = format!("{},{}", guild_id, channel_id.unwrap());
-    let queue = lock.get(&k);
+    let k = EventfulQueueKey {
+        guild_id,
+        channel_id: channel_id.unwrap(),
+    };
+    let queue = lock.get_queue(&k).await;
 
     if let None = queue {
         let embed = CreateEmbed::new()

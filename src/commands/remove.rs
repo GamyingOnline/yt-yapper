@@ -1,6 +1,8 @@
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed};
 
+use crate::queue::EventfulQueueKey;
+
 use super::utils::{Context, Error};
 
 #[poise::command(prefix_command)]
@@ -56,7 +58,10 @@ pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
         .await?;
         return Ok(());
     }
-    let k = format!("{},{}", guild_id, channel_id);
+    let k = EventfulQueueKey {
+        guild_id,
+        channel_id,
+    };
     if handler_lock.queue().len() < n.try_into().unwrap() {
         let embed = CreateEmbed::new()
             .title("❌ Number cannot be larger than the queue size.")
@@ -69,7 +74,8 @@ pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
         return Ok(());
     }
 
-    let track = { ctx.data().queue.read().await.get(&k).unwrap()[(n - 1) as usize].clone() };
+    let track =
+        { ctx.data().queue.read().await.get_queue(&k).await.unwrap()[(n - 1) as usize].clone() };
 
     handler_lock.queue().modify_queue(|queue| {
         queue.remove((n - 1) as usize);
@@ -79,9 +85,8 @@ pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
             .queue
             .write()
             .await
-            .get_mut(&k)
-            .unwrap()
-            .remove((n - 1) as usize);
+            .remove(k, (n - 1) as usize)
+            .await;
     }
     let embed = CreateEmbed::new()
         .title("✅ Removed Track")

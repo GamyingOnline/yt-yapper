@@ -1,12 +1,11 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use reqwest::Client as HttpClient;
 use tokio::sync::RwLock;
 
-#[derive(Debug, Clone)]
+use crate::queue::EventfulQueue;
+
+#[derive(Debug, Clone, Default)]
 pub struct Track {
     pub name: String,
     pub handle_uuid: String,
@@ -18,7 +17,7 @@ pub struct Track {
 #[derive(Debug)]
 pub struct Data {
     pub hc: HttpClient,
-    pub queue: Arc<RwLock<HashMap<String, VecDeque<Track>>>>,
+    pub queue: Arc<RwLock<EventfulQueue<Track>>>,
 }
 
 // pub struct Track {

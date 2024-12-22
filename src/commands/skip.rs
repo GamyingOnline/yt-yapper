@@ -1,7 +1,7 @@
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed};
 
-use crate::commands::utils::Error;
+use crate::{commands::utils::Error, queue::EventfulQueueKey};
 
 use super::utils::Context;
 
@@ -53,18 +53,13 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
         } else {
             n.unwrap_or(1)
         };
-        let k = &format!("{},{}", guild_id.get(), channel_id.get());
+        let k = EventfulQueueKey {
+            guild_id,
+            channel_id,
+        };
         for _ in 0..n_times {
             queue.skip()?;
-            let pop = {
-                ctx.data()
-                    .queue
-                    .write()
-                    .await
-                    .get_mut(k)
-                    .unwrap()
-                    .pop_front()
-            };
+            let pop = { ctx.data().queue.write().await.pop(k.clone()).await };
             if let None = pop {
                 let embed = CreateEmbed::new()
                     .title(format!(
@@ -78,32 +73,6 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
                     ..Default::default()
                 })
                 .await?;
-                let next_track = {
-                    ctx.data()
-                        .queue
-                        .read()
-                        .await
-                        .get(k)
-                        .unwrap()
-                        .front()
-                        .cloned()
-                };
-                if let Some(next_track) = next_track {
-                    let embed = CreateEmbed::new()
-                        .title("**⏯️ Now Playing**")
-                        .field(
-                            next_track.artist,
-                            format!("{} [{}]", next_track.name, next_track.duration),
-                            true,
-                        )
-                        .image(next_track.thumbnail)
-                        .color(Colour::from_rgb(0, 255, 0));
-                    ctx.send(CreateReply {
-                        embeds: vec![embed],
-                        ..Default::default()
-                    })
-                    .await?;
-                }
                 return Ok(());
             }
         }
@@ -119,34 +88,6 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
             ..Default::default()
         })
         .await?;
-
-        let next_track = {
-            ctx.data()
-                .queue
-                .read()
-                .await
-                .get(k)
-                .unwrap()
-                .front()
-                .cloned()
-        };
-
-        if let Some(next_track) = next_track {
-            let embed = CreateEmbed::new()
-                .title("**⏯️ Now Playing**")
-                .image(next_track.thumbnail)
-                .field(
-                    next_track.artist,
-                    format!("{} [{}]", next_track.name, next_track.duration),
-                    true,
-                )
-                .color(Colour::from_rgb(0, 255, 0));
-            ctx.send(CreateReply {
-                embeds: vec![embed],
-                ..Default::default()
-            })
-            .await?;
-        }
     }
     Ok(())
 }
