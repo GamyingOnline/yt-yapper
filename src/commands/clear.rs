@@ -1,7 +1,7 @@
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed};
 
-use crate::commands::utils::Error;
+use crate::{commands::utils::Error, queue::EventfulQueueKey};
 
 use super::utils::Context;
 
@@ -44,29 +44,12 @@ pub async fn clear(ctx: Context<'_>) -> Result<(), Error> {
             .clone()
             .write()
             .await
-            .get_mut(&format!("{},{}", guild_id, channel_id))
-            .unwrap()
-            .clear();
-        if queue.len() == 0 {
-            let embed = CreateEmbed::new()
-                .title("❌ Nothing to clear.")
-                .color(Colour::from_rgb(255, 0, 0));
-            ctx.send(CreateReply {
-                embeds: vec![embed],
-                ..Default::default()
+            .clear(EventfulQueueKey {
+                guild_id,
+                channel_id,
             })
-            .await?;
-            return Ok(());
-        }
+            .await;
         queue.stop();
     }
-    let embed = CreateEmbed::new()
-        .title("⏩ Queue Cleared.")
-        .color(Colour::from_rgb(0, 255, 0));
-    ctx.send(CreateReply {
-        embeds: vec![embed],
-        ..Default::default()
-    })
-    .await?;
     Ok(())
 }

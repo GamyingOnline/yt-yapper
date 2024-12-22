@@ -1,8 +1,7 @@
-use std::collections::VecDeque;
 use std::vec::Vec;
 
 use poise::CreateReply;
-use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
+use serenity::all::{Colour, CreateEmbed};
 use songbird::{
     input::{Compose, YoutubeDl},
     TrackEvent,
@@ -10,7 +9,8 @@ use songbird::{
 
 use crate::{
     commands::utils::{duration_to_time, Error},
-    events::track_error_notifier::TrackErrorNotifier,
+    events::{track_error_notifier::TrackErrorNotifier, track_queue_event::QueueEvent},
+    queue::EventfulQueueKey,
     state::Track,
 };
 
@@ -52,12 +52,24 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
         false => YoutubeDl::new_search(http_client, song_name.join(" ").clone()),
     };
     let queues = ctx.data().queue.clone();
-    let k = format!("{},{}", guild_id, channel_id);
+    let k = EventfulQueueKey {
+        guild_id,
+        channel_id,
+    };
     {
         let mut lock = queues.write().await;
-        let queue = lock.get(&k);
-        if let None = queue {
-            lock.insert(k.clone(), VecDeque::new());
+        let queue = lock.key_exists(&k).await;
+        if !queue {
+            lock.add_handler(
+                QueueEvent {
+                    channel_id,
+                    guild_id,
+                    text_channel_id: ctx.channel_id(),
+                    context: ctx.serenity_context().clone(),
+                },
+                k.clone(),
+            );
+            lock.add_queue(k.clone()).await;
         }
     }
     let track = src.clone().aux_metadata().await?;
@@ -66,80 +78,27 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
         handler.add_global_event(
             TrackEvent::End.into(),
             TrackErrorNotifier {
-                channel_id: channel_id.get(),
-                guild_id: guild_id.get(),
+                channel_id,
+                guild_id,
                 queues: ctx.data().queue.clone(),
-                context: ctx.serenity_context().clone(),
-                message_channel_id: ctx.channel_id().get(),
             },
         );
         let track_handle = handler.enqueue_input(src.clone().into()).await;
-        match handler.queue().len() {
-            1 => {
-                let embed = CreateEmbed::new()
-                    .title("**⏯️ Now Playing**")
-                    .field(
-                        track.clone().artist.unwrap_or_default(),
-                        format!(
-                            "{} [{}]",
-                            track.clone().title.unwrap_or_default(),
-                            duration_to_time(track.clone().duration.unwrap())
-                        ),
-                        true,
-                    )
-                    .image(track.clone().thumbnail.unwrap())
-                    .footer(
-                        CreateEmbedFooter::new(format!("Requested by: {}", ctx.author().name))
-                            .icon_url(ctx.author().avatar_url().unwrap_or_default()),
-                    )
-                    .color(Colour::from_rgb(0, 255, 0));
-                ctx.send(CreateReply {
-                    embeds: vec![embed],
-                    ..Default::default()
-                })
-                .await?;
 
-                queues.write().await.get_mut(&k).unwrap().push_back(Track {
+        queues
+            .write()
+            .await
+            .push(
+                k,
+                Track {
                     name: track.title.clone().unwrap(),
                     handle_uuid: track_handle.uuid().to_string(),
                     artist: track.artist.clone().unwrap_or_default(),
                     duration: duration_to_time(track.duration.clone().unwrap()),
                     thumbnail: track.thumbnail.clone().unwrap(),
-                });
-            }
-            v => {
-                let embed = CreateEmbed::new()
-                    .title(format!("**✅ Queued at position #{}**", v))
-                    .field(
-                        track.clone().artist.unwrap_or_default(),
-                        format!(
-                            "{} [{}]",
-                            track.clone().title.unwrap_or_default(),
-                            duration_to_time(track.clone().duration.unwrap())
-                        ),
-                        true,
-                    )
-                    .thumbnail(track.clone().thumbnail.unwrap())
-                    .footer(
-                        CreateEmbedFooter::new(format!("Requested by: {}", ctx.author().name))
-                            .icon_url(ctx.author().avatar_url().unwrap_or_default()),
-                    )
-                    .color(Colour::from_rgb(0, 255, 0));
-                ctx.send(CreateReply {
-                    embeds: vec![embed],
-                    ..Default::default()
-                })
-                .await?;
-
-                queues.write().await.get_mut(&k).unwrap().push_back(Track {
-                    name: track.title.clone().unwrap(),
-                    handle_uuid: track_handle.uuid().to_string(),
-                    artist: track.artist.clone().unwrap_or_default(),
-                    duration: duration_to_time(track.duration.clone().unwrap()),
-                    thumbnail: track.thumbnail.clone().unwrap(),
-                });
-            }
-        }
+                },
+            )
+            .await;
     }
 
     Ok(())
