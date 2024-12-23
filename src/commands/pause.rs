@@ -52,7 +52,7 @@ pub async fn pause(ctx: Context<'_>) -> Result<(), Error> {
         guild_id,
         channel_id,
     };
-    let track = { ctx.data().queue.read().await.front(k).await.cloned() };
+    let track = { ctx.data().queue.read().await.front(&k).await.cloned() };
     if handler_lock
         .queue()
         .current()
@@ -74,16 +74,17 @@ pub async fn pause(ctx: Context<'_>) -> Result<(), Error> {
         })
         .await?;
         return Ok(());
+    } else {
+        handler_lock.queue().current().unwrap().play().unwrap();
+        let embed = CreateEmbed::new()
+            .title("▶️ Resumed.")
+            .title(track.unwrap().name)
+            .color(Colour::from_rgb(0, 255, 0));
+        ctx.send(CreateReply {
+            embeds: vec![embed],
+            ..Default::default()
+        })
+        .await?;
+        Ok(())
     }
-    handler_lock.queue().current().unwrap().play().unwrap();
-    let embed = CreateEmbed::new()
-        .title("▶️ Resumed.")
-        .title(track.unwrap().name)
-        .color(Colour::from_rgb(0, 255, 0));
-    ctx.send(CreateReply {
-        embeds: vec![embed],
-        ..Default::default()
-    })
-    .await?;
-    Ok(())
 }

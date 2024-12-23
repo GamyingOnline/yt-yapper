@@ -32,11 +32,11 @@ impl VoiceEventHandler for TrackErrorNotifier {
             }
             let (state, handle) = state.unwrap();
 
-            let track = { self.queues.read().await.front(k.clone()).await.cloned() };
+            let track = { self.queues.read().await.front(&k).await.cloned() };
             if let Some(track) = track {
                 if track.handle_uuid == handle.uuid().to_string() {
                     if state.playing == PlayMode::End || state.playing == PlayMode::Stop {
-                        self.queues.write().await.pop(k).await;
+                        self.queues.write().await.pop(&k).await;
                     }
                 }
             }

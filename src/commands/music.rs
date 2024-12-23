@@ -47,11 +47,11 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
     let http_client = ctx.data().hc.clone();
-    let src = match song_name[0].starts_with("http") {
-        true => YoutubeDl::new(http_client, song_name.join(" ").clone()),
-        false => YoutubeDl::new_search(http_client, song_name.join(" ").clone()),
+    let mut src = match song_name[0].starts_with("http") {
+        true => YoutubeDl::new(http_client, song_name.join(" ")),
+        false => YoutubeDl::new_search(http_client, song_name.join(" ")),
     };
-    let queues = ctx.data().queue.clone();
+    let queues = &ctx.data().queue;
     let k = EventfulQueueKey {
         guild_id,
         channel_id,
@@ -67,12 +67,12 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                     text_channel_id: ctx.channel_id(),
                     context: ctx.serenity_context().clone(),
                 },
-                k.clone(),
+                &k,
             );
-            lock.add_queue(k.clone()).await;
+            lock.add_queue(k).await;
         }
     }
-    let track = src.clone().aux_metadata().await?;
+    let track = src.aux_metadata().await?;
     if let Ok(handler_lock) = manager.join(guild_id, channel_id).await {
         let mut handler = handler_lock.lock().await;
         handler.add_global_event(
@@ -83,19 +83,19 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                 queues: ctx.data().queue.clone(),
             },
         );
-        let track_handle = handler.enqueue_input(src.clone().into()).await;
+        let track_handle = handler.enqueue_input(src.into()).await;
 
         queues
             .write()
             .await
             .push(
-                k,
+                &k,
                 Track {
-                    name: track.title.clone().unwrap(),
+                    name: track.title.unwrap(),
                     handle_uuid: track_handle.uuid().to_string(),
-                    artist: track.artist.clone().unwrap_or_default(),
-                    duration: duration_to_time(track.duration.clone().unwrap()),
-                    thumbnail: track.thumbnail.clone().unwrap(),
+                    artist: track.artist.unwrap_or_default(),
+                    duration: duration_to_time(track.duration.unwrap()),
+                    thumbnail: track.thumbnail.unwrap(),
                 },
             )
             .await;

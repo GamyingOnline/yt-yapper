@@ -59,7 +59,7 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
         };
         for _ in 0..n_times {
             queue.skip()?;
-            let pop = { ctx.data().queue.write().await.pop(k.clone()).await };
+            let pop = { ctx.data().queue.write().await.pop(&k).await };
             if let None = pop {
                 let embed = CreateEmbed::new()
                     .title(format!(

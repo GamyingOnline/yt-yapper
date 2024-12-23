@@ -52,7 +52,7 @@ pub async fn seek(ctx: Context<'_>, time: String) -> Result<(), Error> {
         guild_id,
         channel_id,
     };
-    let track = { ctx.data().queue.read().await.front(k).await.cloned() };
+    let track = { ctx.data().queue.read().await.front(&k).await.cloned() };
     let track_duration = time_to_duration(&track.unwrap().duration);
 
     if track_duration < duration {

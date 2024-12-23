@@ -3,7 +3,7 @@ use std::collections::{HashMap, VecDeque};
 use async_trait::async_trait;
 use serenity::all::{ChannelId, GuildId};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub struct EventfulQueueKey {
     pub guild_id: GuildId,
     pub channel_id: ChannelId,
@@ -11,9 +11,9 @@ pub struct EventfulQueueKey {
 
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum QueueEvents<T> {
-    TrackPushed(EventfulQueueKey, VecDeque<T>),
-    TrackPopped(EventfulQueueKey, VecDeque<T>, T),
+pub enum QueueEvents<'a, T> {
+    TrackPushed(EventfulQueueKey, &'a VecDeque<T>),
+    TrackPopped(EventfulQueueKey, &'a VecDeque<T>),
     QueueCreated(EventfulQueueKey),
     QueueCleared(EventfulQueueKey),
 }
@@ -33,11 +33,11 @@ pub struct EventfulQueue<T> {
 }
 
 impl<T: Send + Sync + Clone> EventfulQueue<T> {
-    pub fn add_handler<H>(&mut self, handler: H, key: EventfulQueueKey)
+    pub fn add_handler<H>(&mut self, handler: H, key: &EventfulQueueKey)
     where
         H: QueueEventHandler<T> + Send + Sync + 'static,
     {
-        self.handlers.insert(key, Box::new(handler));
+        self.handlers.insert(key.clone(), Box::new(handler));
     }
 
     pub async fn add_queue(&mut self, key: EventfulQueueKey) {
@@ -53,18 +53,18 @@ impl<T: Send + Sync + Clone> EventfulQueue<T> {
             .await;
     }
 
-    pub async fn push(&mut self, key: EventfulQueueKey, val: T) {
+    pub async fn push(&mut self, key: &EventfulQueueKey, val: T) {
         let queue = self.data.entry(key.clone()).or_insert_with(VecDeque::new);
 
-        queue.push_back(val.clone());
+        queue.push_back(val);
 
-        if let Some(_) = queue.back().cloned() {
+        if let Some(_) = queue.back() {
             self.handlers
                 .get(&key)
                 .unwrap()
                 .on_event(&QueueEvents::TrackPushed(
                     key.clone(),
-                    self.data.get(&key).unwrap().clone(),
+                    self.data.get(&key).unwrap(),
                 ))
                 .await;
         }
@@ -83,17 +83,16 @@ impl<T: Send + Sync + Clone> EventfulQueue<T> {
             .await;
     }
 
-    pub async fn pop(&mut self, key: EventfulQueueKey) -> Option<T> {
+    pub async fn pop(&mut self, key: &EventfulQueueKey) -> Option<T> {
         let track = self.data.get_mut(&key)?.pop_front();
 
-        if let Some(v) = track.clone() {
+        if let Some(_) = track {
             self.handlers
                 .get(&key)
                 .unwrap()
                 .on_event(&QueueEvents::TrackPopped(
                     key.clone(),
-                    self.data.get(&key).unwrap().clone(),
-                    v.clone(),
+                    self.data.get(&key).unwrap(),
                 ))
                 .await;
         }
@@ -104,7 +103,7 @@ impl<T: Send + Sync + Clone> EventfulQueue<T> {
         self.data.get_mut(&key)?.remove(idx)
     }
 
-    pub async fn front(&self, key: EventfulQueueKey) -> Option<&T> {
+    pub async fn front(&self, key: &EventfulQueueKey) -> Option<&T> {
         self.data.get(&key)?.front()
     }
 

@@ -52,7 +52,7 @@ pub async fn repeat(ctx: Context<'_>) -> Result<(), Error> {
         guild_id,
         channel_id,
     };
-    let track = { ctx.data().queue.read().await.front(k).await.cloned() };
+    let track = { ctx.data().queue.read().await.front(&k).await.cloned() };
     if handler_lock
         .queue()
         .current()

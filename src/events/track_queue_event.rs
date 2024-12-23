@@ -34,11 +34,11 @@ impl QueueEventHandler<Track> for QueueEvent {
                             let embed = CreateEmbed::new()
                                 .title("**⏯️ Now Playing**")
                                 .field(
-                                    track.clone().artist,
-                                    format!("{} [{}]", track.clone().name, track.duration),
+                                    track.artist.to_string(),
+                                    format!("{} [{}]", track.name, track.duration),
                                     true,
                                 )
-                                .image(track.clone().thumbnail)
+                                .image(track.thumbnail.to_string())
                                 .color(Colour::from_rgb(0, 255, 0));
                             self.text_channel_id
                                 .send_message(&self.context, CreateMessage::new().add_embed(embed))
@@ -49,11 +49,11 @@ impl QueueEventHandler<Track> for QueueEvent {
                             let embed = CreateEmbed::new()
                                 .title(format!("**✅ Queued at position #{}**", v))
                                 .field(
-                                    track.clone().artist,
-                                    format!("{} [{}]", track.clone().name, track.clone().duration),
+                                    track.artist.to_string(),
+                                    format!("{} [{}]", track.name, track.duration),
                                     true,
                                 )
-                                .thumbnail(track.clone().thumbnail)
+                                .thumbnail(track.thumbnail.to_string())
                                 .color(Colour::from_rgb(0, 255, 0));
                             self.text_channel_id
                                 .send_message(&self.context, CreateMessage::new().add_embed(embed))
@@ -63,7 +63,7 @@ impl QueueEventHandler<Track> for QueueEvent {
                     }
                 }
             }
-            QueueEvents::TrackPopped(k, queue, _) => {
+            QueueEvents::TrackPopped(k, queue) => {
                 let key = EventfulQueueKey {
                     guild_id: self.guild_id,
                     channel_id: self.channel_id,
@@ -85,11 +85,11 @@ impl QueueEventHandler<Track> for QueueEvent {
                             let embed = CreateEmbed::new()
                                 .title("**⏯️ Now Playing**")
                                 .field(
-                                    track.artist.clone(),
+                                    track.artist.to_string(),
                                     format!("{} [{}]", track.name, track.duration),
                                     true,
                                 )
-                                .image(track.thumbnail.clone())
+                                .image(track.thumbnail.to_string())
                                 .color(Colour::from_rgb(0, 255, 0));
                             self.text_channel_id
                                 .send_message(&self.context, CreateMessage::new().add_embed(embed))

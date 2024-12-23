@@ -41,7 +41,6 @@ pub async fn clear(ctx: Context<'_>) -> Result<(), Error> {
         let queue = handler.queue();
         ctx.data()
             .queue
-            .clone()
             .write()
             .await
             .clear(EventfulQueueKey {
