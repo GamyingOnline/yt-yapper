@@ -7,9 +7,9 @@ use super::utils::{Context, Error};
 
 #[poise::command(prefix_command)]
 pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
-    if n < 1 {
+    if n <= 1 {
         let embed = CreateEmbed::new()
-            .title("❌ Number must be greater than 0.")
+            .title("❌ Number must be greater than 1.")
             .color(Colour::from_rgb(255, 0, 0));
         ctx.send(CreateReply {
             embeds: vec![embed],
