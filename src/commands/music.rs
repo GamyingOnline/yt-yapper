@@ -102,9 +102,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
         let spotify_client_secret =
             std::env::var("SPOTIFY_CLIENT_SECRET").expect("missing SPOTIFY_CLIENT_SECRET");
         let mut spotify = SpotifyClient::new(spotify_client_id, spotify_client_secret);
-        let songs = spotify
-            .get_track(format!("{} - {}", track.name, track.artist))
-            .await;
+        let songs = spotify.get_track(track.name.to_string()).await;
         if songs.is_ok() {
             let tracks = songs.unwrap().tracks.unwrap().items;
             track.can_scrobble = true;
