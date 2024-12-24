@@ -1,49 +1,101 @@
 # YT-Yapper
 
-A feature-rich Discord music bot written in Rust that enables music playback and control in Discord voice channels.
+YT-Yapper is a feature-rich Discord music bot written in Rust. It provides seamless music playback and advanced controls while integrating Last.fm scrobbling and Spotify track data for a complete music experience.
 
 ## Features
 
-- Music playback from various sources
-- Playlist support
+- Music playback with search and URL support
 - Comprehensive playback controls:
   - Play/Pause
   - Skip tracks
   - Seek within tracks
   - Clear queue
-  - Repeat mode
-  - Now playing information
-- Server-specific music queues
-- Automatic voice channel state handling
-
+  - Remove specific tracks
+  - Single track repeat mode with toggle
+  - Now playing information with rich embeds and thumbnails
+  - Automatic track progression
+- Server-specific features:
+  - Per-server music queues
+  - Server mute synchronization
+  - Automatic voice channel state handling
+- Last.fm Integration:
+  - Automatic song scrobbling on track completion
+  - Real-time now playing updates
+  - Voice channel member tracking
+  - Secure DM-based authentication
+  - Multi-user support with session persistence
+- SQLite persistence for Last.fm user tokens
+- Spotify Integration: Fetches detailed track metadata using the spotify-rs crate.
 
 ## Installation
 
-1. Ensure you have Rust installed on your system
-2. Clone this repository:
+### 1. Prerequisites:
+
+- Ensure Rust is installed on your system.
+- Obtain a Discord bot token by creating a new application in the Discord Developer Portal.
+- Set up your Last.fm API credentials for scrobbling.
+- Set up Spotify API credentials for enhanced track metadata.
+
+### 2. Clone the Repository:
+
 ```bash
-git clone https://github.com/yourusername/yt-yapper.git
+git clone https://github.com/gamyingonline/yt-yapper.git
 cd yt-yapper
 ```
-3. Set up your Discord bot token as an environment variable:
-```bash
-export DISCORD_TOKEN=your_token_here
+
+### 3. Configuration:
+
+- Rename .env.example to .env and fill in the required details:
+
 ```
-4. Build and run the bot:
+    DATABASE_URL=database_url
+    DISCORD_TOKEN=your_discord_token
+    LASTFM_API_KEY=your_lastfm_api_key
+    LASTFM_SECRET=your_lastfm_secret
+    SPOTIFY_CLIENT_ID=your_spotify_client_id
+    SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+```
+
+### 4. Build and Run:
+
 ```bash
+cargo install sqlx
+cargo sqlx prepare
 cargo build --release
-cargo run
+cargo run --release
 ```
 
 ## Dependencies
 
-- [poise](https://crates.io/crates/poise) - Discord bot framework
-- [songbird](https://crates.io/crates/songbird) - Voice and audio handling
-- [tokio](https://crates.io/crates/tokio) - Async runtime
-- [serenity](https://crates.io/crates/serenity) - Discord API wrapper
-- [rspotify](https://crates.io/crates/rspotify) - Spotify integration
-- [symphonia](https://crates.io/crates/symphonia) - Audio decoding
+- [poise](https://crates.io/crates/poise) v0.6.1 - Discord bot framework
+- [songbird](https://crates.io/crates/songbird) v0.4.3 - Voice and audio handling
+- [tokio](https://crates.io/crates/tokio) v1.41.1 - Async runtime
+- [serenity](https://crates.io/crates/serenity) v0.12.2 - Discord API wrapper
+- [spotify-rs](https://crates.io/crates/spotify-rs) v0.3.14 - Spotify integration
+- [symphonia](https://crates.io/crates/symphonia) v0.5.2 - Audio decoding
+- [rustfm-scrobble](https://crates.io/crates/rustfm-scrobble) v1.1.1 - Last.fm integration
+- [sqlx](https://crates.io/crates/sqlx) v0.8.2 - SQLite database integration
+- [dotenv](https://crates.io/crates/dotenv) v0.15.0 - Environment configuration
+
+## Usage
+
+Once the bot is running, invite it to your Discord server using the OAuth2 URL generated in the Discord Developer Portal. Use the following commands with the prefix ;:
+
+- `;play <url or search>`: Play a track from a URL or search query. (alias: `;music`)
+- `;pause`: Pause the current track.
+- `;resume`: Resume playback.
+- `;skip [<number of tracks>]`: Skip to the next track in the queue.
+- `;queue`: Display the current queue.
+- `;clear`: Clear the queue.
+- `;now`: Show information about the currently playing track.
+- `;seek <time>`: Seek within current track (format: HH:MM:SS, MM:SS, or SS)
+- `;repeat`: Toggle repeat mode. (alias: `;loop`)
+- `;fmlogin <username> <password>`: Set up Last.fm integration (DM only, alias: `;login`)
+
+## Contributing
+
+Contributions are welcome! Please fork the repository and submit a pull request with your changes. Ensure your code adheres to the existing style and includes appropriate tests.
 
 ## License
 
-This project is licensed under the terms included in the LICENSE file.
+This project is licensed under the BSD-3-Clause License. See the [LICENSE](https://github.com/GamyingOnline/yt-yapper/blob/main/LICENSE) file for details.
