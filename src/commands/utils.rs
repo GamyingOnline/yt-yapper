@@ -1,6 +1,13 @@
 use std::time::Duration;
 
-use crate::state::Data;
+use futures::future::join_all;
+use serenity::all::{ChannelId, Colour, Context as SerenityContext, CreateEmbed, CreateMessage};
+
+use crate::{
+    persistence::SqlConn,
+    scrobbler::Scrobbler,
+    state::{Data, Track},
+};
 
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 pub type Context<'a> = poise::Context<'a, Data, Error>;
@@ -40,4 +47,81 @@ pub fn time_to_duration(time: &String) -> Duration {
         _ => {}
     }
     Duration::new(secs, 0)
+}
+
+pub async fn handle_playing(
+    ctx: SerenityContext,
+    text_channel_id: ChannelId,
+    track: &Track,
+    channel_id: ChannelId,
+    sql_conn: &SqlConn,
+) {
+    let embed = CreateEmbed::new()
+        .title("**⏯️ Now Playing**")
+        .field(
+            track.artist.to_string(),
+            format!("{} [{}]", track.name, track.duration),
+            true,
+        )
+        .image(track.thumbnail.to_string())
+        .color(Colour::from_rgb(0, 255, 0));
+    text_channel_id
+        .send_message(&ctx, CreateMessage::new().add_embed(embed))
+        .await
+        .expect("Failed to send message");
+
+    let channel = channel_id.to_channel(&ctx).await.unwrap();
+    let category = channel.category().unwrap();
+    let members = category.members(&ctx).unwrap();
+
+    let users_future: Vec<_> = members
+        .iter()
+        .map(|member| async { sql_conn.get_user(member.user.id.get() as i64).await })
+        .collect();
+
+    let users = join_all(users_future).await;
+    for user in users {
+        if user.is_some() {
+            let api_key = std::env::var("LASTFM_API_KEY").expect("missing LASTFM_API_KEY");
+            let api_secret = std::env::var("LASTFM_API_SECRET").expect("missing LASTFM_API_SECRET");
+            let mut scrobbler = Scrobbler::new(api_key, api_secret);
+            let song = scrobbler
+                .track_to_scrobble(&track.artist, &track.name, &"".to_string())
+                .await;
+            tokio::spawn(async move {
+                scrobbler.now_playing(&song, user.unwrap()).await;
+            });
+        }
+    }
+}
+
+pub async fn scrobble(
+    ctx: SerenityContext,
+    track: &Track,
+    channel_id: ChannelId,
+    sql_conn: &SqlConn,
+) {
+    let channel = channel_id.to_channel(&ctx).await.unwrap();
+    let category = channel.category().unwrap();
+    let members = category.members(&ctx).unwrap();
+
+    let users_future: Vec<_> = members
+        .iter()
+        .map(|member| async { sql_conn.get_user(member.user.id.get() as i64).await })
+        .collect();
+
+    let users = join_all(users_future).await;
+    for user in users {
+        if user.is_some() {
+            let api_key = std::env::var("LASTFM_API_KEY").expect("missing LASTFM_API_KEY");
+            let api_secret = std::env::var("LASTFM_API_SECRET").expect("missing LASTFM_API_SECRET");
+            let mut scrobbler = Scrobbler::new(api_key, api_secret);
+            let song = scrobbler
+                .track_to_scrobble(&track.artist, &track.name, &"".to_string())
+                .await;
+            tokio::spawn(async move {
+                scrobbler.scrobble(&song, user.unwrap()).await;
+            });
+        }
+    }
 }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use reqwest::Client as HttpClient;
 use tokio::sync::RwLock;
 
-use crate::queue::EventfulQueue;
+use crate::{persistence::SqlConn, queue::EventfulQueue};
 
 #[derive(Debug, Clone, Default)]
 pub struct Track {
@@ -14,10 +14,11 @@ pub struct Track {
     pub thumbnail: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Data {
     pub hc: HttpClient,
     pub queue: Arc<RwLock<EventfulQueue<Track>>>,
+    pub sql_conn: SqlConn,
 }
 
 // pub struct Track {

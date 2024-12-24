@@ -13,7 +13,7 @@ pub struct EventfulQueueKey {
 #[non_exhaustive]
 pub enum QueueEvents<'a, T> {
     TrackPushed(EventfulQueueKey, &'a VecDeque<T>),
-    TrackPopped(EventfulQueueKey, &'a VecDeque<T>),
+    TrackPopped(EventfulQueueKey, &'a VecDeque<T>, &'a T),
     QueueCreated(EventfulQueueKey),
     QueueCleared(EventfulQueueKey),
 }
@@ -86,13 +86,14 @@ impl<T: Send + Sync + Clone> EventfulQueue<T> {
     pub async fn pop(&mut self, key: &EventfulQueueKey) -> Option<T> {
         let track = self.data.get_mut(&key)?.pop_front();
 
-        if let Some(_) = track {
+        if let Some(ref v) = track {
             self.handlers
                 .get(&key)
                 .unwrap()
                 .on_event(&QueueEvents::TrackPopped(
                     key.clone(),
                     self.data.get(&key).unwrap(),
+                    v,
                 ))
                 .await;
         }

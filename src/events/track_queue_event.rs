@@ -2,6 +2,8 @@ use async_trait::async_trait;
 use serenity::all::{ChannelId, Colour, Context, CreateEmbed, CreateMessage, GuildId};
 
 use crate::{
+    commands::utils::{handle_playing, scrobble},
+    persistence::SqlConn,
     queue::{EventfulQueueKey, QueueEventHandler, QueueEvents},
     state::Track,
 };
@@ -12,6 +14,7 @@ pub struct QueueEvent {
     pub guild_id: GuildId,
     pub text_channel_id: ChannelId,
     pub context: Context,
+    pub sql_conn: SqlConn,
 }
 
 #[async_trait]
@@ -31,19 +34,14 @@ impl QueueEventHandler<Track> for QueueEvent {
                     let track = queue.back().unwrap();
                     match len {
                         1 => {
-                            let embed = CreateEmbed::new()
-                                .title("**⏯️ Now Playing**")
-                                .field(
-                                    track.artist.to_string(),
-                                    format!("{} [{}]", track.name, track.duration),
-                                    true,
-                                )
-                                .image(track.thumbnail.to_string())
-                                .color(Colour::from_rgb(0, 255, 0));
-                            self.text_channel_id
-                                .send_message(&self.context, CreateMessage::new().add_embed(embed))
-                                .await
-                                .expect("Failed to send message");
+                            handle_playing(
+                                self.context.clone(),
+                                self.text_channel_id,
+                                track,
+                                self.channel_id,
+                                &self.sql_conn,
+                            )
+                            .await
                         }
                         v => {
                             let embed = CreateEmbed::new()
@@ -63,7 +61,7 @@ impl QueueEventHandler<Track> for QueueEvent {
                     }
                 }
             }
-            QueueEvents::TrackPopped(k, queue) => {
+            QueueEvents::TrackPopped(k, queue, v) => {
                 let key = EventfulQueueKey {
                     guild_id: self.guild_id,
                     channel_id: self.channel_id,
@@ -82,21 +80,17 @@ impl QueueEventHandler<Track> for QueueEvent {
                         }
                         _ => {
                             let track = queue.front().unwrap();
-                            let embed = CreateEmbed::new()
-                                .title("**⏯️ Now Playing**")
-                                .field(
-                                    track.artist.to_string(),
-                                    format!("{} [{}]", track.name, track.duration),
-                                    true,
-                                )
-                                .image(track.thumbnail.to_string())
-                                .color(Colour::from_rgb(0, 255, 0));
-                            self.text_channel_id
-                                .send_message(&self.context, CreateMessage::new().add_embed(embed))
-                                .await
-                                .expect("Failed to send message");
+                            handle_playing(
+                                self.context.clone(),
+                                self.text_channel_id,
+                                track,
+                                self.channel_id,
+                                &self.sql_conn,
+                            )
+                            .await;
                         }
                     }
+                    scrobble(self.context.clone(), v, self.channel_id, &self.sql_conn).await;
                 }
             }
             QueueEvents::QueueCleared(k) => {

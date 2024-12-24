@@ -66,6 +66,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                     guild_id,
                     text_channel_id: ctx.channel_id(),
                     context: ctx.serenity_context().clone(),
+                    sql_conn: ctx.data().sql_conn.clone(),
                 },
                 &k,
             );

@@ -1,6 +1,5 @@
-use anyhow::{Ok, Error};
+use anyhow::{Error, Ok};
 use sqlx::SqlitePool;
-
 
 #[derive(sqlx::FromRow)]
 pub struct User {
