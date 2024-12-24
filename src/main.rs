@@ -19,6 +19,7 @@ use state::Data;
 mod commands;
 mod events;
 mod models;
+mod persistence;
 mod queue;
 mod state;
 
