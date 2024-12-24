@@ -8,7 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  DATABASE_URL: sqlite:memory
+  DATABASE_URL: sqlite:db.sqlite
 
 jobs:
   build:
@@ -18,4 +18,4 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: cargo build --verbose
+      run: touch db.sqlite && cargo build --verbose
