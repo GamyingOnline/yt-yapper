@@ -24,6 +24,7 @@ mod models;
 mod persistence;
 mod queue;
 mod scrobbler;
+mod spotify;
 mod state;
 
 #[tokio::main]

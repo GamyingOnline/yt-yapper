@@ -23,3 +23,4 @@ dotenv = "0.15.0"
 anyhow = "1.0.95"
 sqlx = { version = "0.8.2", features = ["sqlite", "runtime-tokio"] }
 rustfm-scrobble = "1.1.1"
+spotify-rs = "0.3.14"

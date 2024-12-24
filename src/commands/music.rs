@@ -11,6 +11,7 @@ use crate::{
     commands::utils::{duration_to_time, Error},
     events::{track_error_notifier::TrackErrorNotifier, track_queue_event::QueueEvent},
     queue::EventfulQueueKey,
+    spotify::SpotifyClient,
     state::Track,
 };
 
@@ -73,7 +74,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
             lock.add_queue(k).await;
         }
     }
-    let track = src.aux_metadata().await?;
+    let track_metadata = src.aux_metadata().await?;
     if let Ok(handler_lock) = manager.join(guild_id, channel_id).await {
         let mut handler = handler_lock.lock().await;
         handler.add_global_event(
@@ -86,20 +87,33 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
         );
         let track_handle = handler.enqueue_input(src.into()).await;
 
-        queues
-            .write()
-            .await
-            .push(
-                &k,
-                Track {
-                    name: track.title.unwrap(),
-                    handle_uuid: track_handle.uuid().to_string(),
-                    artist: track.artist.unwrap_or_default(),
-                    duration: duration_to_time(track.duration.unwrap()),
-                    thumbnail: track.thumbnail.unwrap(),
-                },
-            )
+        let mut track = Track {
+            name: track_metadata.title.unwrap_or_default(),
+            handle_uuid: track_handle.uuid().to_string(),
+            artist: track_metadata.artist.unwrap_or_default(),
+            duration: duration_to_time(track_metadata.duration.unwrap_or_default()),
+            thumbnail: track_metadata.thumbnail.unwrap_or_default(),
+            album: track_metadata.album.unwrap_or_default(),
+            can_scrobble: false,
+        };
+
+        let spotify_client_id =
+            std::env::var("SPOTIFY_CLIENT_ID").expect("missing SPOTIFY_CLIENT_ID");
+        let spotify_client_secret =
+            std::env::var("SPOTIFY_CLIENT_SECRET").expect("missing SPOTIFY_CLIENT_SECRET");
+        let mut spotify = SpotifyClient::new(spotify_client_id, spotify_client_secret);
+        let songs = spotify
+            .get_track(format!("{} - {}", track.name, track.artist))
             .await;
+        if songs.is_ok() {
+            let tracks = songs.unwrap().tracks.unwrap().items;
+            track.can_scrobble = true;
+            track.album = tracks[0].album.name.to_string();
+            track.name = tracks[0].name.to_string();
+            track.thumbnail = tracks[0].album.images[0].url.to_string();
+            track.artist = tracks[0].artists[0].name.to_string();
+        }
+        queues.write().await.push(&k, track).await;
     }
 
     Ok(())

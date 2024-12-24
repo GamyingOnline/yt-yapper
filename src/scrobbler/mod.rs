@@ -36,7 +36,7 @@ impl Scrobbler {
     pub async fn now_playing(&mut self, song: &Scrobble, user: User) {
         let mut scrobbler = RustFmScrobbler::new(&self.api_key, &self.api_secret);
         scrobbler.authenticate_with_session_key(&user.token);
-        scrobbler.scrobble(song).expect("Now Playing failed");
+        scrobbler.now_playing(song).expect("Now Playing failed");
     }
 
     pub async fn get_user_token(

@@ -90,7 +90,9 @@ impl QueueEventHandler<Track> for QueueEvent {
                             .await;
                         }
                     }
-                    scrobble(self.context.clone(), v, self.channel_id, &self.sql_conn).await;
+                    if v.can_scrobble {
+                        scrobble(self.context.clone(), v, self.channel_id, &self.sql_conn).await;
+                    }
                 }
             }
             QueueEvents::QueueCleared(k) => {

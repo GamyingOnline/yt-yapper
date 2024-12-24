@@ -20,9 +20,9 @@ impl SqlConn {
     pub async fn get_user(&self, id: i64) -> Option<User> {
         Some(
             sqlx::query_as!(User, "SELECT * FROM user where id=(?) LIMIT 1", id)
-                .fetch_one(&self.sql_conn)
+                .fetch_optional(&self.sql_conn)
                 .await
-                .expect("User not found"),
+                .expect("User not found")?,
         )
     }
 }

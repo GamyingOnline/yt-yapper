@@ -12,9 +12,11 @@ pub struct Track {
     pub artist: String,
     pub duration: String,
     pub thumbnail: String,
+    pub album: String,
+    pub can_scrobble: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Data {
     pub hc: HttpClient,
     pub queue: Arc<RwLock<EventfulQueue<Track>>>,
