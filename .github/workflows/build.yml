@@ -18,4 +18,4 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: touch db.sqlite cargo install sqlx && cargo sqlx prepare && cargo build --verbose
+      run: touch db.sqlite cargo install sqlx-cli && cargo sqlx prepare && cargo build --verbose
