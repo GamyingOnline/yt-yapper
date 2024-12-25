@@ -9,15 +9,14 @@ use crate::{
     commands::utils::{duration_to_time, Error},
     events::{track_error_notifier::TrackErrorNotifier, track_queue_event::QueueEvent},
     queue::EventfulQueueKey,
-    spotify::SpotifyClient,
     state::Track,
 };
 
 use super::utils::Context;
 
 /// Plays music - pass the name of song.
-#[poise::command(prefix_command, aliases("play"))]
-pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error> {
+#[poise::command(prefix_command, aliases("youtube"))]
+pub async fn yt(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error> {
     let (guild_id, channel_id) = {
         let guild = ctx.guild().expect("Guild only command");
         let channel_id = guild
@@ -45,30 +44,11 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
         .await
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
-
-    let spotify_client_id = std::env::var("SPOTIFY_CLIENT_ID").expect("missing SPOTIFY_CLIENT_ID");
-    let spotify_client_secret =
-        std::env::var("SPOTIFY_CLIENT_SECRET").expect("missing SPOTIFY_CLIENT_SECRET");
-
-    let mut spotify = SpotifyClient::new(spotify_client_id, spotify_client_secret);
-    if song_name[0].starts_with("http") {
-        ctx.say("Use `;yt` to play using links.").await?;
-        return Ok(());
-    }
-
-    let songs = spotify.get_track(song_name.join(" ")).await;
-    let mut track = Track::default();
-    if songs.is_ok() {
-        let song = &songs.unwrap().tracks.unwrap().items[0];
-        track.can_scrobble = true;
-        track.album = song.album.name.to_string();
-        track.artist = song.artists[0].name.to_string();
-        track.name = song.name.to_string();
-        track.thumbnail = song.album.images[0].url.to_string();
-    }
-
     let http_client = ctx.data().hc.clone();
-    let mut src = YoutubeDl::new_search(http_client, format!("{} - {}", track.name, track.artist));
+    let mut src = match song_name[0].starts_with("http") {
+        true => YoutubeDl::new(http_client, song_name.join(" ")),
+        false => YoutubeDl::new_search(http_client, song_name.join(" ")),
+    };
     let queues = &ctx.data().queue;
     let k = EventfulQueueKey {
         guild_id,
@@ -104,9 +84,15 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
         );
         let track_handle = handler.enqueue_input(src.into()).await;
 
-        track.duration = duration_to_time(track_metadata.duration.unwrap_or_default());
-        track.handle_uuid = track_handle.uuid().to_string();
-
+        let track = Track {
+            name: track_metadata.title.unwrap_or_default(),
+            handle_uuid: track_handle.uuid().to_string(),
+            artist: track_metadata.artist.unwrap_or_default(),
+            duration: duration_to_time(track_metadata.duration.unwrap_or_default()),
+            thumbnail: track_metadata.thumbnail.unwrap_or_default(),
+            album: track_metadata.album.unwrap_or_default(),
+            can_scrobble: false,
+        };
         queues.write().await.push(&k, track).await;
     }
 

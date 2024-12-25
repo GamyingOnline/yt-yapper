@@ -9,6 +9,7 @@ use commands::play::playlist;
 use commands::remove::remove;
 use commands::seek::seek;
 use commands::skip::skip;
+use commands::yt::yt;
 use commands::{clear::clear, repeat::repeat};
 
 use dotenv::dotenv;
@@ -50,6 +51,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 seek(),
                 remove(),
                 fmlogin(),
+                yt(),
             ],
             event_handler: |ctx, event, _, _| match event {
                 serenity::FullEvent::VoiceStateUpdate { new, .. } => Box::pin(async move {
