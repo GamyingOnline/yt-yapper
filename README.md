@@ -81,7 +81,8 @@ cargo run --release
 
 Once the bot is running, invite it to your Discord server using the OAuth2 URL generated in the Discord Developer Portal. Use the following commands with the prefix ;:
 
-- `;play <url or search>`: Play a track from a URL or search query. (alias: `;music`)
+- `;play <search>`: Play a track from a search query (searches from spotify). (alias: `;music`)
+- `;yt <url or search>`: Play a track from a url or search query (searches from yt). (alias: `;youtube`)
 - `;pause`: Pause the current track.
 - `;resume`: Resume playback.
 - `;skip [<number of tracks>]`: Skip to the next track in the queue.
