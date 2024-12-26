@@ -120,7 +120,7 @@ pub async fn scrobble(
             let api_secret = std::env::var("LASTFM_API_SECRET").expect("missing LASTFM_API_SECRET");
             let mut scrobbler = Scrobbler::new(api_key, api_secret);
             let song = scrobbler
-                .track_to_scrobble(&track.artist, &track.name, &"".to_string())
+                .track_to_scrobble(&track.artist, &track.name, &track.album)
                 .await;
             tokio::spawn(async move {
                 scrobbler.scrobble(&song, user.unwrap()).await;
