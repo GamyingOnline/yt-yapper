@@ -32,10 +32,10 @@ YT-Yapper is a feature-rich Discord music bot written in Rust. It provides seaml
 
 ### 1. Prerequisites:
 
-- Ensure Rust is installed on your system.
-- Obtain a Discord bot token by creating a new application in the Discord Developer Portal.
-- Set up your Last.fm API credentials for scrobbling.
-- Set up Spotify API credentials for enhanced track metadata.
+- Ensure [Rust](https://rust-lang.org) is installed on your system.
+- Obtain a Discord bot token by creating a new application in the [Discord Developer Portal](https://discord.com/developers/applications).
+- Set up your [Last.fm API](https://www.last.fm/api/account/create) credentials for scrobbling.
+- Set up [Spotify API credentials](https://developer.spotify.com/dashboard) for enhanced track metadata.
 
 ### 2. Clone the Repository:
 
