@@ -14,6 +14,7 @@ pub struct Track {
     pub thumbnail: String,
     pub album: String,
     pub can_scrobble: bool,
+    pub from_playlist: bool,
 }
 
 #[derive(Debug)]

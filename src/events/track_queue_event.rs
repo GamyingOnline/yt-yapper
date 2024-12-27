@@ -1,5 +1,8 @@
+use std::time::Duration;
+
 use async_trait::async_trait;
 use serenity::all::{ChannelId, Colour, Context, CreateEmbed, CreateMessage, GuildId};
+use tokio::time::sleep;
 
 use crate::{
     commands::utils::{handle_playing, scrobble},
@@ -44,19 +47,24 @@ impl QueueEventHandler<Track> for QueueEvent {
                             .await
                         }
                         v => {
-                            let embed = CreateEmbed::new()
-                                .title(format!("**✅ Queued at position #{}**", v))
-                                .field(
-                                    track.artist.to_string(),
-                                    format!("{} [{}]", track.name, track.duration),
-                                    true,
-                                )
-                                .thumbnail(track.thumbnail.to_string())
-                                .color(Colour::from_rgb(0, 255, 0));
-                            self.text_channel_id
-                                .send_message(&self.context, CreateMessage::new().add_embed(embed))
-                                .await
-                                .expect("Failed to send message");
+                            if !track.from_playlist {
+                                let embed = CreateEmbed::new()
+                                    .title(format!("**✅ Queued at position #{}**", v))
+                                    .field(
+                                        track.artist.to_string(),
+                                        format!("{} [{}]", track.name, track.duration),
+                                        true,
+                                    )
+                                    .thumbnail(track.thumbnail.to_string())
+                                    .color(Colour::from_rgb(0, 255, 0));
+                                self.text_channel_id
+                                    .send_message(
+                                        &self.context,
+                                        CreateMessage::new().add_embed(embed),
+                                    )
+                                    .await
+                                    .expect("Failed to send message");
+                            }
                         }
                     }
                 }
@@ -73,10 +81,13 @@ impl QueueEventHandler<Track> for QueueEvent {
                             let embed = CreateEmbed::new()
                                 .title("**✅ Queue Finished**")
                                 .color(Colour::from_rgb(0, 255, 0));
-                            self.text_channel_id
+                            let message = self
+                                .text_channel_id
                                 .send_message(&self.context, CreateMessage::new().add_embed(embed))
                                 .await
                                 .expect("Failed to send message");
+                            sleep(Duration::new(3, 0)).await;
+                            message.delete(&self.context).await.ok();
                         }
                         _ => {
                             let track = queue.front().unwrap();

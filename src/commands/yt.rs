@@ -92,6 +92,7 @@ pub async fn yt(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error> {
             thumbnail: track_metadata.thumbnail.unwrap_or_default(),
             album: track_metadata.album.unwrap_or_default(),
             can_scrobble: false,
+            from_playlist: false,
         };
         queues.write().await.push(&k, track).await;
     }

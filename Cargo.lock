@@ -1836,6 +1836,7 @@ dependencies = [
  "dotenv",
  "futures",
  "poise",
+ "regex",
  "reqwest 0.11.27",
  "rspotify",
  "rustfm-scrobble",
