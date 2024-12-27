@@ -14,6 +14,7 @@ YT-Yapper is a feature-rich Discord music bot written in Rust. It provides seaml
   - Single track repeat mode with toggle
   - Now playing information with rich embeds and thumbnails
   - Automatic track progression
+  - Spotify playlist support
 - Server-specific features:
   - Per-server music queues
   - Server mute synchronization
@@ -79,9 +80,9 @@ cargo run --release
 
 ## Usage
 
-Once the bot is running, invite it to your Discord server using the OAuth2 URL generated in the Discord Developer Portal. Use the following commands with the prefix ;:
+Once the bot is running, invite it to your Discord server using the OAuth2 URL generated in the Discord Developer Portal. Use the following commands with the prefix `;`
 
-- `;play <search>`: Play a track from a search query (searches from spotify). (alias: `;music`)
+- `;play <playlist url or search>`: Play a track from a search query (searches from spotify) or a spotify playlist. (alias: `;music`)
 - `;yt <url or search>`: Play a track from a url or search query (searches from yt). (alias: `;youtube`)
 - `;pause`: Pause the current track.
 - `;resume`: Resume playback.
@@ -95,7 +96,7 @@ Once the bot is running, invite it to your Discord server using the OAuth2 URL g
 
 ## Contributing
 
-Contributions are welcome! Please fork the repository and submit a pull request with your changes. Ensure your code adheres to the existing style and includes appropriate tests.
+Contributions are welcome! Please fork the repository and submit a pull request with your changes. Ensure your code adheres to the existing style.
 
 ## License
 
