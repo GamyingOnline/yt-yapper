@@ -1,5 +1,6 @@
 use spotify_rs::{
     model::{
+        album::Album,
         playlist::Playlist,
         search::{Item, SearchResults},
     },
@@ -36,5 +37,14 @@ impl SpotifyClient {
         ))
         .await?;
         client.playlist(id).get().await
+    }
+
+    pub async fn get_album(&mut self, id: String) -> Result<Album, Error> {
+        let mut client = ClientCredsClient::authenticate(ClientCredsFlow::new(
+            self.client_id.clone(),
+            self.client_secret.clone(),
+        ))
+        .await?;
+        client.album(id).get().await
     }
 }

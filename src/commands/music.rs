@@ -61,10 +61,10 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
 
     let mut spotify = SpotifyClient::new(spotify_client_id, spotify_client_secret);
     if song_name[0].starts_with("http") {
-        let spotify_regex =
+        let playlist_regex =
             Regex::new(r"https:\/\/open.spotify.com\/playlist\/[A-Za-z0-9]+(\?si=[a-f0-9]+)?")
                 .unwrap();
-        if spotify_regex.is_match(&song_name[0]) {
+        if playlist_regex.is_match(&song_name[0]) {
             let playlist = spotify
                 .get_playlist(
                     song_name[0]
@@ -91,7 +91,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                     .title(format!("✅ Queuing **{}** tracks", songs.len()))
                     .description(format!(
                         "from **{}**\nby **{}**",
-                        unwrapped_playlist.name.to_string(),
+                        unwrapped_playlist.name,
                         unwrapped_playlist.owner.display_name.unwrap_or_default()
                     ))
                     .thumbnail(unwrapped_playlist.images[0].url.to_string())
@@ -157,7 +157,104 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                 }
             }
         }
-        return Ok(());
+        let album_regex =
+            Regex::new(r"https:\/\/open.spotify.com\/album\/[A-Za-z0-9]+(\?si=[a-f0-9]+)?")
+                .unwrap();
+        if album_regex.is_match(&song_name[0]) {
+            let album = spotify
+                .get_album(
+                    song_name[0]
+                        .strip_prefix("https://open.spotify.com/album/")
+                        .unwrap()
+                        .split("?")
+                        .collect::<Vec<&str>>()[0]
+                        .to_string(),
+                )
+                .await;
+            if album.is_ok() {
+                let unwrapped_album = album.unwrap();
+                let songs = unwrapped_album.tracks.items;
+
+                let embed = CreateEmbed::new()
+                    .title(format!("✅ Queuing **{}** tracks", songs.len()))
+                    .description(format!(
+                        "from **{}**\nby **{}**",
+                        unwrapped_album.name, unwrapped_album.artists[0].name
+                    ))
+                    .thumbnail(unwrapped_album.images[0].url.to_string())
+                    .color(Colour::from_rgb(0, 255, 0));
+                ctx.send(CreateReply {
+                    embeds: vec![embed],
+                    ..Default::default()
+                })
+                .await?;
+
+                for song in songs {
+                    let mut track = Track {
+                        can_scrobble: true,
+                        album: unwrapped_album.name.to_string(),
+                        artist: song.artists[0].name.to_string(),
+                        name: song.name.to_string(),
+                        thumbnail: unwrapped_album.images[0].url.to_string(),
+                        from_playlist: true,
+                        ..Default::default()
+                    };
+
+                    let mut src = YoutubeDl::new_search(
+                        http_client.clone(),
+                        format!("{} - {}", track.name, track.artist),
+                    );
+
+                    {
+                        let mut lock = queues.write().await;
+                        let queue = lock.key_exists(&k).await;
+                        if !queue {
+                            lock.add_handler(
+                                QueueEvent {
+                                    channel_id,
+                                    guild_id,
+                                    text_channel_id: ctx.channel_id(),
+                                    context: ctx.serenity_context().clone(),
+                                    sql_conn: ctx.data().sql_conn.clone(),
+                                },
+                                &k,
+                            );
+                            lock.add_queue(k).await;
+                        }
+                    }
+                    let track_metadata = src.aux_metadata().await?;
+                    if let Ok(handler_lock) = manager.join(guild_id, channel_id).await {
+                        let mut handler = handler_lock.lock().await;
+                        handler.add_global_event(
+                            TrackEvent::End.into(),
+                            TrackErrorNotifier {
+                                channel_id,
+                                guild_id,
+                                queues: ctx.data().queue.clone(),
+                            },
+                        );
+                        let track_handle = handler.enqueue_input(src.into()).await;
+
+                        track.duration =
+                            duration_to_time(track_metadata.duration.unwrap_or_default());
+                        track.handle_uuid = track_handle.uuid().to_string();
+
+                        queues.write().await.push(&k, track).await;
+                    }
+                }
+            }
+        } else {
+            let embed = CreateEmbed::new()
+                .title("**❌ Only Spotify Playlist/Album links are supported.")
+                .description("For YouTube links use `;yt`")
+                .color(Colour::from_rgb(255, 0, 0));
+            ctx.send(CreateReply {
+                embeds: vec![embed],
+                ..Default::default()
+            })
+            .await?;
+            return Ok(());
+        }
     }
 
     let songs = spotify.get_track(song_name.join(" ")).await;
