@@ -61,7 +61,7 @@ cd yt-yapper
 ### 4. Build and Run:
 
 ```bash
-cargo install sqlx
+cargo install sqlx-cli
 cargo sqlx prepare
 cargo build --release
 cargo run --release
