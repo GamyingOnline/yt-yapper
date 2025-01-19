@@ -1,12 +1,15 @@
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed};
 
-use crate::queue::EventfulQueueKey;
+use crate::{
+    queue::{MusicQueueKey, QueueMessage},
+    state::Track,
+};
 
 use super::utils::{Context, Error};
 
 #[poise::command(prefix_command)]
-pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
+pub async fn remove(ctx: Context<'_>, n: usize) -> Result<(), Error> {
     if n <= 1 {
         let embed = CreateEmbed::new()
             .title("❌ Number must be greater than 1.")
@@ -58,7 +61,7 @@ pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
         .await?;
         return Ok(());
     }
-    let k = EventfulQueueKey {
+    let key = MusicQueueKey {
         guild_id,
         channel_id,
     };
@@ -74,20 +77,22 @@ pub async fn remove(ctx: Context<'_>, n: u64) -> Result<(), Error> {
         return Ok(());
     }
 
-    let track =
-        { ctx.data().queue.read().await.get_queue(&k).await.unwrap()[(n - 1) as usize].clone() };
+    let (responder, response) = tokio::sync::oneshot::channel::<Option<Track>>();
+    ctx.data()
+        .queue
+        .send(QueueMessage::Remove {
+            key,
+            index: n - 1,
+            responder,
+        })
+        .await
+        .unwrap();
+
+    let track = response.await?.unwrap();
 
     handler_lock.queue().modify_queue(|queue| {
         queue.remove((n - 1) as usize);
     });
-    {
-        ctx.data()
-            .queue
-            .write()
-            .await
-            .remove(k, (n - 1) as usize)
-            .await;
-    }
     let embed = CreateEmbed::new()
         .title("✅ Removed Track")
         .field(format!("{} - {}", track.artist, track.name), "", false)

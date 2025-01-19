@@ -1,7 +1,11 @@
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed};
 
-use crate::{commands::utils::Error, queue::EventfulQueueKey};
+use crate::{
+    commands::utils::Error,
+    queue::{EventState, MusicQueueKey, QueueMessage},
+    state::Track,
+};
 
 use super::utils::Context;
 
@@ -53,13 +57,28 @@ pub async fn skip(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
         } else {
             n.unwrap_or(1)
         };
-        let k = EventfulQueueKey {
+        let key = MusicQueueKey {
             guild_id,
             channel_id,
         };
         for _ in 0..n_times {
             queue.skip()?;
-            let pop = { ctx.data().queue.write().await.pop(&k).await };
+            let (responder, response) = tokio::sync::oneshot::channel::<Option<Track>>();
+            ctx.data()
+                .queue
+                .send(QueueMessage::Pop {
+                    key,
+                    responder,
+                    event_state: EventState {
+                        context: ctx.serenity_context().clone(),
+                        channel_id,
+                        text_channel_id: ctx.channel_id(),
+                        sql_conn: ctx.data().sql_conn.clone(),
+                    },
+                })
+                .await
+                .unwrap();
+            let pop = response.await?;
             if let None = pop {
                 let embed = CreateEmbed::new()
                     .title(format!(
