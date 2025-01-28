@@ -95,6 +95,9 @@ Once the bot is running, invite it to your Discord server using the OAuth2 URL g
 - `;repeat`: Toggle repeat mode. (alias: `;loop`)
 - `;fmlogin <username> <password>`: Set up Last.fm integration (DM only, alias: `;login`)
 
+## BUGS?
+`You tell me.`
+
 ## Contributing 
 
 Contributions are welcome! Please fork the repository and submit a pull request with your changes. Ensure your code adheres to the existing style.
