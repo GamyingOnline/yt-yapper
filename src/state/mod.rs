@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use reqwest::Client as HttpClient;
-use tokio::sync::RwLock;
+use tokio::sync::mpsc::Sender;
 
-use crate::{persistence::SqlConn, queue::EventfulQueue};
+use crate::{persistence::SqlConn, queue::QueueMessage};
 
 #[derive(Debug, Clone, Default)]
 pub struct Track {
@@ -20,19 +18,6 @@ pub struct Track {
 #[derive(Debug)]
 pub struct Data {
     pub hc: HttpClient,
-    pub queue: Arc<RwLock<EventfulQueue<Track>>>,
+    pub queue: Sender<QueueMessage>,
     pub sql_conn: SqlConn,
 }
-
-// pub struct Track {
-//     pub name: String,
-//     pub is_playing: bool
-// }
-// impl Track {
-//     pub fn new_from_name(name: impl Into<String>) -> Self {
-//         Self { name: name.into(), is_playing: false }
-//     }
-//     pub fn new(name: impl Into<String>, is_playing: bool) -> Self {
-//         Self { name: name.into(), is_playing }
-//     }
-// }
