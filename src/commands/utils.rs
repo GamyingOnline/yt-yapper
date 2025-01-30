@@ -1,7 +1,10 @@
 use std::time::Duration;
 
 use futures::future::join_all;
-use serenity::all::{ChannelId, Colour, Context as SerenityContext, CreateEmbed, CreateMessage};
+use serenity::all::{
+    ChannelId, Colour, Context as SerenityContext, CreateAttachment, CreateEmbed, CreateMessage,
+    EditProfile, GuildId,
+};
 
 use crate::{
     persistence::SqlConn,
@@ -52,6 +55,7 @@ pub fn time_to_duration(time: &String) -> Duration {
 pub async fn handle_playing(
     ctx: SerenityContext,
     text_channel_id: ChannelId,
+    guild_id: GuildId,
     track: &Track,
     channel_id: ChannelId,
     sql_conn: &SqlConn,
@@ -65,6 +69,15 @@ pub async fn handle_playing(
         )
         .image(track.thumbnail.to_string())
         .color(Colour::from_rgb(0, 255, 0));
+    let new_avatar = CreateAttachment::url(ctx.http.as_ref(), &track.thumbnail).await;
+    let guild = ctx.cache.guild(guild_id).unwrap().clone();
+    let _ = guild.edit_nickname(&ctx, Some(&track.artist)).await;
+    if new_avatar.is_ok() {
+        let mut current_user = ctx.cache.current_user().clone();
+        let _ = current_user
+            .edit(&ctx, EditProfile::new().avatar(&new_avatar.unwrap()))
+            .await;
+    }
     text_channel_id
         .send_message(&ctx, CreateMessage::new().add_embed(embed))
         .await

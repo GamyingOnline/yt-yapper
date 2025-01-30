@@ -53,6 +53,7 @@ pub async fn clear(ctx: Context<'_>) -> Result<(), Error> {
                 event_state: EventState {
                     context: ctx.serenity_context().clone(),
                     channel_id,
+                    guild_id,
                     text_channel_id: ctx.channel_id(),
                     sql_conn: ctx.data().sql_conn.clone(),
                 },

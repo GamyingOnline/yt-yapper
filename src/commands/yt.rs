@@ -80,6 +80,7 @@ pub async fn yt(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error> {
                 event_state: EventState {
                     context: ctx.serenity_context().clone(),
                     channel_id,
+                    guild_id,
                     text_channel_id: ctx.channel_id(),
                     sql_conn: ctx.data().sql_conn.clone(),
                 },
@@ -96,8 +97,7 @@ pub async fn yt(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error> {
             duration: duration_to_time(track_metadata.duration.unwrap_or_default()),
             thumbnail: track_metadata.thumbnail.unwrap_or_default(),
             album: track_metadata.album.unwrap_or_default(),
-            can_scrobble: false,
-            from_playlist: false,
+            ..Default::default()
         };
         ctx.data()
             .queue
@@ -107,6 +107,7 @@ pub async fn yt(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error> {
                 event_state: EventState {
                     context: ctx.serenity_context().clone(),
                     channel_id,
+                    guild_id,
                     text_channel_id: ctx.channel_id(),
                     sql_conn: ctx.data().sql_conn.clone(),
                 },

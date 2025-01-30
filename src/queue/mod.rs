@@ -25,6 +25,7 @@ pub struct MusicQueueKey {
 pub struct EventState {
     pub context: Context,
     pub channel_id: ChannelId,
+    pub guild_id: GuildId,
     pub text_channel_id: ChannelId,
     pub sql_conn: SqlConn,
 }
@@ -95,6 +96,7 @@ impl MusicQueue {
                                     handle_playing(
                                         event_state.context.clone(),
                                         event_state.text_channel_id,
+                                        event_state.guild_id,
                                         &value,
                                         event_state.channel_id,
                                         &event_state.sql_conn,
@@ -155,6 +157,7 @@ impl MusicQueue {
                                     handle_playing(
                                         event_state.context.clone(),
                                         event_state.text_channel_id,
+                                        event_state.guild_id,
                                         track,
                                         event_state.channel_id,
                                         &event_state.sql_conn,
