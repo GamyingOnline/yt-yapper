@@ -1,3 +1,7 @@
 /target
 *.sqlite*
 .env
+# Nix & direnv
+.direnv
+result
+result-*
