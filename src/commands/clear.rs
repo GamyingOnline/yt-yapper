@@ -1,7 +1,10 @@
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed};
 
-use crate::{commands::utils::Error, queue::EventfulQueueKey};
+use crate::{
+    commands::utils::Error,
+    queue::{EventState, MusicQueueKey, QueueMessage},
+};
 
 use super::utils::Context;
 
@@ -39,15 +42,24 @@ pub async fn clear(ctx: Context<'_>) -> Result<(), Error> {
     if let Ok(handler_lock) = manager.join(guild_id, channel_id).await {
         let handler = handler_lock.lock().await;
         let queue = handler.queue();
+        let key = MusicQueueKey {
+            guild_id,
+            channel_id,
+        };
         ctx.data()
             .queue
-            .write()
-            .await
-            .clear(EventfulQueueKey {
-                guild_id,
-                channel_id,
+            .send(QueueMessage::Clear {
+                key,
+                event_state: EventState {
+                    context: ctx.serenity_context().clone(),
+                    channel_id,
+                    guild_id,
+                    text_channel_id: ctx.channel_id(),
+                    sql_conn: ctx.data().sql_conn.clone(),
+                },
             })
-            .await;
+            .await
+            .unwrap();
         queue.stop();
     }
     Ok(())

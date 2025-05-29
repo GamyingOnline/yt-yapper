@@ -5,7 +5,6 @@ use commands::music::music;
 use commands::now::now;
 use commands::pause::pause;
 use commands::ping::ping;
-use commands::play::playlist;
 use commands::remove::remove;
 use commands::seek::seek;
 use commands::skip::skip;
@@ -15,6 +14,7 @@ use commands::{clear::clear, repeat::repeat};
 use dotenv::dotenv;
 use persistence::SqlConn;
 use poise::{serenity_prelude as serenity, PrefixFrameworkOptions};
+use queue::MusicQueue;
 use reqwest::Client as HttpClient;
 use songbird::SerenityInit;
 use state::Data;
@@ -34,13 +34,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt().init();
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let sql_url = std::env::var("DATABASE_URL").expect("missing DATABASE_URL");
+    let queue_capacity = std::env::var("MAX_QUEUE_LENGTH")
+        .unwrap_or("100".to_string())
+        .parse::<usize>()
+        .expect("MAX_QUEUE_LENGTH must be a number");
     let intents =
         serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
+
+    let sender = MusicQueue::spawn(queue_capacity);
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![
-                playlist(),
                 music(),
                 ping(),
                 skip(),
@@ -89,7 +94,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data {
                     hc: HttpClient::new(),
-                    queue: Default::default(),
+                    queue: sender,
                     sql_conn: SqlConn::new(sql_url).await,
                 })
             })
