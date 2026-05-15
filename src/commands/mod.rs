@@ -4,7 +4,6 @@ pub mod music;
 pub mod now;
 pub mod pause;
 pub mod ping;
-pub mod play;
 pub mod remove;
 pub mod repeat;
 pub mod seek;

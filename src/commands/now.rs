@@ -1,7 +1,14 @@
+use std::collections::VecDeque;
+
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 
-use crate::{commands::utils::Error, models::pagination::PaginatedQueue, queue::EventfulQueueKey};
+use crate::{
+    commands::utils::Error,
+    models::pagination::PaginatedQueue,
+    queue::{MusicQueueKey, QueueMessage},
+    state::Track,
+};
 
 use super::utils::Context;
 
@@ -30,14 +37,20 @@ pub async fn now(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
         .await?;
         return Ok(());
     }
-    let lock = ctx.data().queue.read().await;
-    let k = EventfulQueueKey {
+    let key = MusicQueueKey {
         guild_id,
         channel_id: channel_id.unwrap(),
     };
-    let queue = lock.get_queue(&k).await;
+    let (responder, response) = tokio::sync::oneshot::channel::<Option<VecDeque<Track>>>();
+    ctx.data()
+        .queue
+        .send(QueueMessage::GetQueue { key, responder })
+        .await
+        .unwrap();
 
-    if let None = queue {
+    let res = response.await.ok().unwrap();
+
+    if let None = res {
         let embed = CreateEmbed::new()
             .title("❌ No music is playing.")
             .color(Colour::from_rgb(255, 0, 0));
@@ -48,7 +61,7 @@ pub async fn now(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
         .await?;
         return Ok(());
     }
-    let queue = queue.unwrap();
+    let queue = res.unwrap();
 
     let len = queue.len();
     if len == 0 {
@@ -62,7 +75,7 @@ pub async fn now(ctx: Context<'_>, n: Option<usize>) -> Result<(), Error> {
         .await?;
         return Ok(());
     }
-    let paginated_queue = PaginatedQueue::new(queue, len, n);
+    let paginated_queue = PaginatedQueue::new(&queue, len, n);
     let pages = paginated_queue.total_pages();
 
     if n > pages {
