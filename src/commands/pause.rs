@@ -2,10 +2,7 @@ use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed};
 use songbird::tracks::PlayMode;
 
-use crate::{
-    queue::{MusicQueueKey, QueueMessage},
-    state::Track,
-};
+use crate::queue::EventfulQueueKey;
 
 use super::utils::{Context, Error};
 
@@ -51,17 +48,11 @@ pub async fn pause(ctx: Context<'_>) -> Result<(), Error> {
         .await?;
         return Ok(());
     }
-    let key = MusicQueueKey {
+    let k = EventfulQueueKey {
         guild_id,
         channel_id,
     };
-    let (responder, response) = tokio::sync::oneshot::channel::<Option<Track>>();
-    ctx.data()
-        .queue
-        .send(QueueMessage::Front { key, responder })
-        .await
-        .unwrap();
-    let track = response.await.unwrap();
+    let track = { ctx.data().queue.read().await.front(&k).await.cloned() };
     if handler_lock
         .queue()
         .current()

@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use poise::CreateReply;
 use serenity::all::{Colour, CreateEmbed};
 use songbird::{
@@ -9,8 +7,8 @@ use songbird::{
 
 use crate::{
     commands::utils::{duration_to_time, Error},
-    events::track_error_notifier::TrackErrorNotifier,
-    queue::{EventState, MusicQueueKey, QueueMessage},
+    events::{track_error_notifier::TrackErrorNotifier, track_queue_event::QueueEvent},
+    queue::EventfulQueueKey,
     state::Track,
 };
 
@@ -51,24 +49,26 @@ pub async fn yt(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error> {
         true => YoutubeDl::new(http_client, song_name.join(" ")),
         false => YoutubeDl::new_search(http_client, song_name.join(" ")),
     };
-    let key = MusicQueueKey {
+    let queues = &ctx.data().queue;
+    let k = EventfulQueueKey {
         guild_id,
         channel_id,
     };
     {
-        let (responder, response) = tokio::sync::oneshot::channel::<Option<VecDeque<Track>>>();
-        ctx.data()
-            .queue
-            .send(QueueMessage::GetQueue { key, responder })
-            .await
-            .unwrap();
-        let queue = response.await?;
-        if let None = queue {
-            ctx.data()
-                .queue
-                .send(QueueMessage::AddQueue { key })
-                .await
-                .unwrap();
+        let mut lock = queues.write().await;
+        let queue = lock.key_exists(&k).await;
+        if !queue {
+            lock.add_handler(
+                QueueEvent {
+                    channel_id,
+                    guild_id,
+                    text_channel_id: ctx.channel_id(),
+                    context: ctx.serenity_context().clone(),
+                    sql_conn: ctx.data().sql_conn.clone(),
+                },
+                &k,
+            );
+            lock.add_queue(k).await;
         }
     }
     let track_metadata = src.aux_metadata().await?;
@@ -77,13 +77,7 @@ pub async fn yt(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error> {
         handler.add_global_event(
             TrackEvent::End.into(),
             TrackErrorNotifier {
-                event_state: EventState {
-                    context: ctx.serenity_context().clone(),
-                    channel_id,
-                    guild_id,
-                    text_channel_id: ctx.channel_id(),
-                    sql_conn: ctx.data().sql_conn.clone(),
-                },
+                channel_id,
                 guild_id,
                 queues: ctx.data().queue.clone(),
             },
@@ -97,23 +91,10 @@ pub async fn yt(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error> {
             duration: duration_to_time(track_metadata.duration.unwrap_or_default()),
             thumbnail: track_metadata.thumbnail.unwrap_or_default(),
             album: track_metadata.album.unwrap_or_default(),
-            ..Default::default()
+            can_scrobble: false,
+            from_playlist: false,
         };
-        ctx.data()
-            .queue
-            .send(QueueMessage::Push {
-                key,
-                value: track,
-                event_state: EventState {
-                    context: ctx.serenity_context().clone(),
-                    channel_id,
-                    guild_id,
-                    text_channel_id: ctx.channel_id(),
-                    sql_conn: ctx.data().sql_conn.clone(),
-                },
-            })
-            .await
-            .unwrap();
+        queues.write().await.push(&k, track).await;
     }
 
     Ok(())
