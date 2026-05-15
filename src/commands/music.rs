@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use poise::CreateReply;
 use regex::Regex;
 use serenity::all::{Colour, CreateEmbed};
@@ -11,8 +9,8 @@ use spotify_rs::model::{track::Track as SpotifyTrack, PlayableItem};
 
 use crate::{
     commands::utils::{duration_to_time, Error},
-    events::track_error_notifier::TrackErrorNotifier,
-    queue::{EventState, MusicQueueKey, QueueMessage},
+    events::{track_error_notifier::TrackErrorNotifier, track_queue_event::QueueEvent},
+    queue::EventfulQueueKey,
     spotify::SpotifyClient,
     state::Track,
 };
@@ -50,23 +48,12 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
-    let key = MusicQueueKey {
+    let k = EventfulQueueKey {
         guild_id,
         channel_id,
     };
-    let queues = ctx.data().queue.clone();
+    let queues = &ctx.data().queue;
     let http_client = ctx.data().hc.clone();
-
-    {
-        let (responder, response) = tokio::sync::oneshot::channel::<Option<VecDeque<Track>>>();
-        queues
-            .send(QueueMessage::GetQueue { key, responder })
-            .await
-            .unwrap();
-        if response.await.unwrap().is_none() {
-            queues.send(QueueMessage::AddQueue { key }).await.unwrap();
-        }
-    }
 
     let spotify_client_id = std::env::var("SPOTIFY_CLIENT_ID").expect("missing SPOTIFY_CLIENT_ID");
     let spotify_client_secret =
@@ -131,19 +118,30 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                         format!("{} - {}", track.name, track.artist),
                     );
 
+                    {
+                        let mut lock = queues.write().await;
+                        let queue = lock.key_exists(&k).await;
+                        if !queue {
+                            lock.add_handler(
+                                QueueEvent {
+                                    channel_id,
+                                    guild_id,
+                                    text_channel_id: ctx.channel_id(),
+                                    context: ctx.serenity_context().clone(),
+                                    sql_conn: ctx.data().sql_conn.clone(),
+                                },
+                                &k,
+                            );
+                            lock.add_queue(k).await;
+                        }
+                    }
                     let track_metadata = src.aux_metadata().await?;
                     if let Ok(handler_lock) = manager.join(guild_id, channel_id).await {
                         let mut handler = handler_lock.lock().await;
                         handler.add_global_event(
                             TrackEvent::End.into(),
                             TrackErrorNotifier {
-                                event_state: EventState {
-                                    context: ctx.serenity_context().clone(),
-                                    channel_id,
-                                    guild_id,
-                                    text_channel_id: ctx.channel_id(),
-                                    sql_conn: ctx.data().sql_conn.clone(),
-                                },
+                                channel_id,
                                 guild_id,
                                 queues: ctx.data().queue.clone(),
                             },
@@ -154,20 +152,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                             duration_to_time(track_metadata.duration.unwrap_or_default());
                         track.handle_uuid = track_handle.uuid().to_string();
 
-                        queues
-                            .send(QueueMessage::Push {
-                                key,
-                                value: track,
-                                event_state: EventState {
-                                    context: ctx.serenity_context().clone(),
-                                    channel_id,
-                                    guild_id,
-                                    text_channel_id: ctx.channel_id(),
-                                    sql_conn: ctx.data().sql_conn.clone(),
-                                },
-                            })
-                            .await
-                            .unwrap();
+                        queues.write().await.push(&k, track).await;
                     }
                 }
             }
@@ -220,19 +205,30 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                         format!("{} - {}", track.name, track.artist),
                     );
 
+                    {
+                        let mut lock = queues.write().await;
+                        let queue = lock.key_exists(&k).await;
+                        if !queue {
+                            lock.add_handler(
+                                QueueEvent {
+                                    channel_id,
+                                    guild_id,
+                                    text_channel_id: ctx.channel_id(),
+                                    context: ctx.serenity_context().clone(),
+                                    sql_conn: ctx.data().sql_conn.clone(),
+                                },
+                                &k,
+                            );
+                            lock.add_queue(k).await;
+                        }
+                    }
                     let track_metadata = src.aux_metadata().await?;
                     if let Ok(handler_lock) = manager.join(guild_id, channel_id).await {
                         let mut handler = handler_lock.lock().await;
                         handler.add_global_event(
                             TrackEvent::End.into(),
                             TrackErrorNotifier {
-                                event_state: EventState {
-                                    context: ctx.serenity_context().clone(),
-                                    channel_id,
-                                    guild_id,
-                                    text_channel_id: ctx.channel_id(),
-                                    sql_conn: ctx.data().sql_conn.clone(),
-                                },
+                                channel_id,
                                 guild_id,
                                 queues: ctx.data().queue.clone(),
                             },
@@ -243,20 +239,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                             duration_to_time(track_metadata.duration.unwrap_or_default());
                         track.handle_uuid = track_handle.uuid().to_string();
 
-                        queues
-                            .send(QueueMessage::Push {
-                                key,
-                                value: track,
-                                event_state: EventState {
-                                    context: ctx.serenity_context().clone(),
-                                    channel_id,
-                                    guild_id,
-                                    text_channel_id: ctx.channel_id(),
-                                    sql_conn: ctx.data().sql_conn.clone(),
-                                },
-                            })
-                            .await
-                            .unwrap();
+                        queues.write().await.push(&k, track).await;
                     }
                 }
             }
@@ -270,8 +253,8 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
                 ..Default::default()
             })
             .await?;
+            return Ok(());
         }
-        return Ok(());
     }
 
     let songs = spotify.get_track(song_name.join(" ")).await;
@@ -288,19 +271,30 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
 
     let mut src = YoutubeDl::new_search(http_client, format!("{} - {}", track.name, track.artist));
 
+    {
+        let mut lock = queues.write().await;
+        let queue = lock.key_exists(&k).await;
+        if !queue {
+            lock.add_handler(
+                QueueEvent {
+                    channel_id,
+                    guild_id,
+                    text_channel_id: ctx.channel_id(),
+                    context: ctx.serenity_context().clone(),
+                    sql_conn: ctx.data().sql_conn.clone(),
+                },
+                &k,
+            );
+            lock.add_queue(k).await;
+        }
+    }
     let track_metadata = src.aux_metadata().await?;
     if let Ok(handler_lock) = manager.join(guild_id, channel_id).await {
         let mut handler = handler_lock.lock().await;
         handler.add_global_event(
             TrackEvent::End.into(),
             TrackErrorNotifier {
-                event_state: EventState {
-                    context: ctx.serenity_context().clone(),
-                    channel_id,
-                    guild_id,
-                    text_channel_id: ctx.channel_id(),
-                    sql_conn: ctx.data().sql_conn.clone(),
-                },
+                channel_id,
                 guild_id,
                 queues: ctx.data().queue.clone(),
             },
@@ -310,20 +304,7 @@ pub async fn music(ctx: Context<'_>, song_name: Vec<String>) -> Result<(), Error
         track.duration = duration_to_time(track_metadata.duration.unwrap_or_default());
         track.handle_uuid = track_handle.uuid().to_string();
 
-        queues
-            .send(QueueMessage::Push {
-                key,
-                value: track,
-                event_state: EventState {
-                    context: ctx.serenity_context().clone(),
-                    channel_id,
-                    guild_id,
-                    text_channel_id: ctx.channel_id(),
-                    sql_conn: ctx.data().sql_conn.clone(),
-                },
-            })
-            .await
-            .unwrap();
+        queues.write().await.push(&k, track).await;
     }
 
     Ok(())
